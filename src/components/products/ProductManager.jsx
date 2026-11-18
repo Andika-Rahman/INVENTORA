@@ -13,8 +13,12 @@ import {
     AlertCircle,
     CheckCircle2,
     MapPin,
+    QrCode,
+    ScanBarcode,
 } from 'lucide-react';
 import SafeImage from '@/components/ui/SafeImage';
+import BarcodeModal from '@/components/products/BarcodeModal';
+import QuickScanModal from '@/components/products/QuickScanModal';
 import { formatRupiah, getStockStatus } from '@/lib/formatters';
 import {
     createProductAction,
@@ -24,11 +28,19 @@ import {
 
 const initialFormState = { error: '', success: '' };
 
-export default function ProductManager({ products, categories, canManage }) {
+export default function ProductManager({
+    products,
+    allProductsForScan,
+    categories,
+    canManage,
+    canRecordTransaction,
+    }) {
     const [formModalOpen, setFormModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleteError, setDeleteError] = useState('');
+    const [barcodeProduct, setBarcodeProduct] = useState(null);
+    const [scanModalOpen, setScanModalOpen] = useState(false);
     const [imageUrl, setImageUrl] = useState('');
     const [uploading, setUploading] = useState(false);
 
@@ -100,8 +112,17 @@ export default function ProductManager({ products, categories, canManage }) {
 
     return (
         <div className="space-y-4">
-        {canManage && (
-            <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-end gap-2.5">
+            <button
+            type="button"
+            onClick={() => setScanModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 text-xs font-semibold transition cursor-pointer"
+            >
+            <ScanBarcode className="w-4 h-4 text-blue-400" />
+            <span>Quick Scan SKU</span>
+            </button>
+
+            {canManage && (
             <button
                 type="button"
                 onClick={openCreateModal}
@@ -110,8 +131,8 @@ export default function ProductManager({ products, categories, canManage }) {
                 <Plus className="w-4 h-4" />
                 <span>Tambah Komponen Baru</span>
             </button>
-            </div>
-        )}
+            )}
+        </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
@@ -189,6 +210,15 @@ export default function ProductManager({ products, categories, canManage }) {
                         </td>
                         <td className="py-3.5 px-4">
                             <div className="flex items-center justify-end gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setBarcodeProduct(item)}
+                                title="Barcode & QR Label"
+                                className="p-2 rounded-lg bg-slate-800 hover:bg-violet-600 text-slate-300 hover:text-white transition cursor-pointer"
+                            >
+                                <QrCode className="w-4 h-4" />
+                            </button>
+
                             <Link
                                 href={`/dashboard/products/${item.id}`}
                                 title="Detail Produk"
@@ -230,6 +260,21 @@ export default function ProductManager({ products, categories, canManage }) {
             </table>
             </div>
         </div>
+
+        {barcodeProduct && (
+            <BarcodeModal
+            product={barcodeProduct}
+            onClose={() => setBarcodeProduct(null)}
+            />
+        )}
+
+        {scanModalOpen && (
+            <QuickScanModal
+            products={allProductsForScan || products}
+            canRecordTransaction={canRecordTransaction}
+            onClose={() => setScanModalOpen(false)}
+            />
+        )}
 
         {formModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">

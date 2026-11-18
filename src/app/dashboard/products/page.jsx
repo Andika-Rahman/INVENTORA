@@ -4,6 +4,7 @@ import { Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-r
 import { getSession } from '@/lib/auth';
 import { query } from '@/lib/db';
 import ProductManager from '@/components/products/ProductManager';
+import ExportCsvButton from '@/components/ui/ExportCsvButton';
 
 export default async function ProductsPage({ searchParams }) {
     const session = await getSession();
@@ -61,7 +62,7 @@ export default async function ProductsPage({ searchParams }) {
 
     const dataValues = [...values, pageSize, offset];
 
-    const [productsRes, categoriesRes] = await Promise.all([
+    const [productsRes, allScanProductsRes, categoriesRes] = await Promise.all([
         query(
         `SELECT
             p.id, p.sku, p.name, p.category_id, p.description,
@@ -74,6 +75,9 @@ export default async function ProductsPage({ searchParams }) {
         ${orderByClause}
         LIMIT $${dataValues.length - 1} OFFSET $${dataValues.length}`,
         dataValues
+        ),
+        query(
+        'SELECT id, sku, name, stock, min_stock, low_stock, unit, rack_location, selling_price, image_url FROM products ORDER BY sku ASC'
         ),
         query('SELECT id, name FROM categories ORDER BY name ASC'),
     ]);
@@ -89,14 +93,19 @@ export default async function ProductsPage({ searchParams }) {
     }
 
     const canManage = ['admin', 'warehouse_manager'].includes(session.role);
+    const canRecordTransaction = ['staff_gudang', 'admin'].includes(session.role);
 
     return (
         <div className="space-y-6">
-        <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
             <h1 className="text-2xl font-bold text-white">Inventori Komponen PC & Laptop</h1>
             <p className="text-sm text-slate-400 mt-1">
-            Monitoring stok real-time, lokasi rak, dan batas peringatan stok minimum
+                Monitoring stok real-time, lokasi rak, barcode SKU, dan peringatan stok minimum
             </p>
+            </div>
+
+            {canManage && <ExportCsvButton moduleName="products" label="Export Produk (CSV)" />}
         </div>
 
         <form
@@ -171,8 +180,10 @@ export default async function ProductsPage({ searchParams }) {
 
         <ProductManager
             products={productsRes.rows}
+            allProductsForScan={allScanProductsRes.rows}
             categories={categoriesRes.rows}
             canManage={canManage}
+            canRecordTransaction={canRecordTransaction}
         />
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
