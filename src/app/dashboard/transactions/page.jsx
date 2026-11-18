@@ -4,6 +4,7 @@ import { Search } from 'lucide-react';
 import { getSession } from '@/lib/auth';
 import { query } from '@/lib/db';
 import TransactionManager from '@/components/transactions/TransactionManager';
+import ExportCsvButton from '@/components/ui/ExportCsvButton';
 
 export default async function TransactionsPage({ searchParams }) {
     const session = await getSession();
@@ -161,11 +162,24 @@ export default async function TransactionsPage({ searchParams }) {
 
     return (
         <div className="space-y-6">
-        <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
             <h1 className="text-2xl font-bold text-white">Transaksi Gudang</h1>
             <p className="text-sm text-slate-400 mt-1">
-            Pencatatan dan validasi arus barang masuk dari supplier serta barang keluar ke tujuan
+                Pencatatan dan validasi arus barang masuk dari supplier serta barang keluar ke tujuan
             </p>
+            </div>
+
+            {['admin', 'warehouse_manager', 'staff_gudang'].includes(session.role) && (
+            <ExportCsvButton
+                moduleName="transactions"
+                label={
+                session.role === 'staff_gudang'
+                    ? 'Export Transaksi Saya (CSV)'
+                    : 'Export Transaksi (CSV)'
+                }
+            />
+            )}
         </div>
 
         {session.role !== 'supplier' && (

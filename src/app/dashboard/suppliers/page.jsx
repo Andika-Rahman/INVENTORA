@@ -1,3 +1,4 @@
+import ExportCsvButton from '@/components/ui/ExportCsvButton';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Building2, CheckCircle2, XCircle, Clock, Mail, Phone, MapPin } from 'lucide-react';
@@ -46,13 +47,17 @@ export default async function SuppliersPage({ searchParams }) {
     return (
         <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-            <h1 className="text-2xl font-bold text-white">Verifikasi & Manajemen Supplier</h1>
-            <p className="text-sm text-slate-400 mt-1">
-                Tinjau pendaftaran mitra supplier komponen sebelum diberikan akses sistem
-            </p>
-            </div>
+        <div>
+          <h1 className="text-2xl font-bold text-white">Verifikasi & Manajemen Supplier</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Tinjau pendaftaran mitra supplier komponen sebelum diberikan akses sistem
+          </p>
         </div>
+
+        {session.role === 'admin' && (
+          <ExportCsvButton moduleName="suppliers" label="Export Supplier (CSV)" />
+        )}
+      </div>
 
         <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-4">
             {tabs.map((tab) => {

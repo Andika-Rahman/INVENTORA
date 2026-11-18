@@ -1,3 +1,4 @@
+import ExportCsvButton from '@/components/ui/ExportCsvButton';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { query } from '@/lib/db';
@@ -22,5 +23,15 @@ export default async function CategoriesPage() {
         ORDER BY c.name ASC
     `);
 
-    return <CategoryManager categories={result.rows} />;
+    return (
+        <div className="space-y-4">
+        {session.role === 'admin' && (
+            <div className="flex justify-end">
+            <ExportCsvButton moduleName="categories" label="Export Kategori (CSV)" />
+            </div>
+        )}
+
+        <CategoryManager categories={result.rows} />
+        </div>
+    );
 }

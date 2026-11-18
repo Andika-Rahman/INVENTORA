@@ -15,6 +15,7 @@ import {
     Building2,
     Calendar,
 } from 'lucide-react';
+import ExportCsvButton from '@/components/ui/ExportCsvButton';
 import { formatDate } from '@/lib/formatters';
 import {
     createRestockOrderAction,
@@ -167,14 +168,17 @@ export default function RestockManager({
             </div>
 
             {canCreateAndManage && (
-            <button
+            <div className="flex flex-wrap items-center gap-2.5 self-start">
+                <ExportCsvButton moduleName="restocks" label="Export Restock PO (CSV)" />
+                <button
                 type="button"
                 onClick={() => setCreateModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer self-start"
-            >
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer"
+                >
                 <Plus className="w-4 h-4" />
                 <span>Buat Restock Order (PO)</span>
-            </button>
+                </button>
+            </div>
             )}
         </div>
 
