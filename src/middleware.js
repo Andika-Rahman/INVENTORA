@@ -2,81 +2,69 @@ import { NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
 const secretKey = new TextEncoder().encode(
-    process.env.JWT_SECRET || 'inventora_fallback_secret_key_2026'
-);
+    process.env.JWT_SECRET || 'inventora_default_secret_key_2026'
+    );
 
-const COOKIE_NAME = 'inventora_session';
-
-async function getPayload(request) {
-    const token = request.cookies.get(COOKIE_NAME)?.value;
-    if (!token) return null;
+    async function verifyToken(token) {
     try {
         const { payload } = await jwtVerify(token, secretKey);
         return payload;
     } catch {
         return null;
     }
-}
+    }
 
-export async function middleware(request) {
+    export async function middleware(request) {
     const { pathname } = request.nextUrl;
-    const payload = await getPayload(request);
+    const token = request.cookies.get('inventora_session')?.value;
+    const session = token ? await verifyToken(token) : null;
 
-    const isAuthRoute = pathname === '/login' || pathname === '/register';
-    const isSupplierStatusRoute = pathname === '/supplier-status';
-    const isDashboardRoute = pathname.startsWith('/dashboard');
+    if (pathname === '/') {
+        return NextResponse.next();
+    }
 
-    if (isDashboardRoute) {
-        if (!payload) {
+    if (pathname === '/login' || pathname === '/register') {
+        if (session) {
+        if (session.role === 'supplier' && session.status !== 'Approved') {
+            return NextResponse.redirect(new URL('/supplier-status', request.url));
+        }
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+        return NextResponse.next();
+    }
+
+    if (pathname.startsWith('/dashboard')) {
+        if (!session) {
         return NextResponse.redirect(new URL('/login', request.url));
         }
 
-        if (payload.role === 'supplier' && payload.status !== 'Approved') {
+        if (session.role === 'supplier' && session.status !== 'Approved') {
         return NextResponse.redirect(new URL('/supplier-status', request.url));
         }
 
-        if (pathname.startsWith('/dashboard/suppliers') && payload.role !== 'admin') {
+        if (pathname.startsWith('/dashboard/suppliers') && session.role !== 'admin') {
         return NextResponse.redirect(new URL('/dashboard', request.url));
         }
 
         if (
         pathname.startsWith('/dashboard/categories') &&
-        !['admin', 'warehouse_manager'].includes(payload.role)
+        !['admin', 'warehouse_manager'].includes(session.role)
         ) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
         }
 
-        if (pathname.startsWith('/dashboard/products') && payload.role === 'supplier') {
+        if (pathname.startsWith('/dashboard/products') && session.role === 'supplier') {
         return NextResponse.redirect(new URL('/dashboard', request.url));
         }
 
-        if (
-        pathname.startsWith('/dashboard/restocks') &&
-        payload.role === 'staff_gudang'
-        ) {
+        if (pathname.startsWith('/dashboard/restocks') && session.role === 'staff_gudang') {
         return NextResponse.redirect(new URL('/dashboard', request.url));
         }
-    }
-
-    if (isSupplierStatusRoute) {
-        if (!payload) {
-        return NextResponse.redirect(new URL('/login', request.url));
-        }
-        if (payload.role !== 'supplier' || payload.status === 'Approved') {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
-    }
-
-    if (isAuthRoute && payload) {
-        if (payload.role === 'supplier' && payload.status !== 'Approved') {
-        return NextResponse.redirect(new URL('/supplier-status', request.url));
-        }
-        return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
     return NextResponse.next();
-}
+    }
 
-export const config = {
-    matcher: ['/dashboard/:path*', '/login', '/register', '/supplier-status'],
+    export const config = {
+    matcher: ['/', '/login', '/register', '/dashboard/:path*'],
 };
