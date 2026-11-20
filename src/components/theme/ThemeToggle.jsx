@@ -1,6 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { usePathname } from 'next/navigation';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/components/theme/ThemeProvider';
 
@@ -28,6 +29,41 @@ export default function ThemeToggle() {
             <Sun className="w-4 h-4 text-amber-400" />
         ) : (
             <Moon className="w-4 h-4 text-red-600" />
+        )}
+        </button>
+    );
+}
+
+export function FloatingThemeToggle() {
+    const pathname = usePathname();
+    const { theme, toggleTheme } = useTheme();
+    const mounted = useSyncExternalStore(
+        emptySubscribe,
+        () => true,
+        () => false
+    );
+
+    if (pathname === '/') return null;
+
+    const isDark = mounted && theme === 'dark';
+
+    return (
+        <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label="Ubah Tema Tampilan"
+        className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-white hover:bg-red-50 text-slate-800 border border-slate-200 shadow-lg shadow-slate-300/50 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700 dark:shadow-black/50 text-xs font-semibold transition cursor-pointer"
+        >
+        {isDark ? (
+            <>
+            <Sun className="w-4 h-4 text-amber-400" />
+            <span>Light Mode</span>
+            </>
+        ) : (
+            <>
+            <Moon className="w-4 h-4 text-red-600" />
+            <span>Dark Mode</span>
+            </>
         )}
         </button>
     );

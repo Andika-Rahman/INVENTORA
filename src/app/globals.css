@@ -35,3 +35,226 @@ body {
   color: var(--text-main);
   transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+html:not(.dark) .bg-slate-950 {
+  background-color: #f8fafc;
+}
+
+html:not(.dark) .bg-slate-950\/90,
+html:not(.dark) .bg-slate-950\/85,
+html:not(.dark) .bg-slate-950\/80 {
+  background-color: rgba(248, 250, 252, 0.92);
+}
+
+html:not(.dark) .bg-slate-950\/70,
+html:not(.dark) .bg-slate-950\/60 {
+  background-color: #f1f5f9;
+}
+
+html:not(.dark) .bg-slate-900,
+html:not(.dark) .bg-slate-900\/90,
+html:not(.dark) .bg-slate-900\/80,
+html:not(.dark) .bg-slate-900\/70 {
+  background-color: #ffffff;
+}
+
+html:not(.dark) .bg-slate-900\/40 {
+  background-color: #f8fafc;
+}
+
+html:not(.dark) .bg-slate-800 {
+  background-color: #f1f5f9;
+}
+
+html:not(.dark) .bg-slate-700\/60 {
+  background-color: #f1f5f9;
+}
+
+html:not(.dark) .hover\:bg-slate-800:hover,
+html:not(.dark) .hover\:bg-slate-800\/50:hover,
+html:not(.dark) .hover\:bg-slate-800\/35:hover,
+html:not(.dark) .hover\:bg-slate-700:hover {
+  background-color: #fee2e2;
+}
+
+html:not(.dark) .border-slate-800,
+html:not(.dark) .border-slate-800\/80,
+html:not(.dark) .border-slate-800\/50,
+html:not(.dark) .border-slate-700,
+html:not(.dark) .border-slate-600 {
+  border-color: #e2e8f0;
+}
+
+html:not(.dark) .divide-slate-800 > :not(:last-child),
+html:not(.dark) .divide-slate-800\/80 > :not(:last-child) {
+  border-color: #e2e8f0;
+}
+
+html:not(.dark) .text-white:not(.bg-blue-600):not(.bg-red-600):not(.bg-emerald-600):not(.bg-rose-600):not(.bg-amber-600):not(.bg-cyan-600):not(.bg-violet-600),
+html:not(.dark) .text-slate-100,
+html:not(.dark) .text-slate-200 {
+  color: #0f172a;
+}
+
+html:not(.dark) :is(.bg-blue-600, .bg-red-600, .bg-emerald-600, .bg-rose-600, .bg-amber-600, .bg-cyan-600, .bg-violet-600),
+html:not(.dark) :is(.bg-blue-600, .bg-red-600, .bg-emerald-600, .bg-rose-600, .bg-amber-600, .bg-cyan-600, .bg-violet-600) .text-white,
+html:not(.dark) :is(.bg-blue-600, .bg-red-600, .bg-emerald-600, .bg-rose-600, .bg-amber-600, .bg-cyan-600, .bg-violet-600) svg {
+  color: #ffffff;
+}
+
+html:not(.dark) .text-slate-300 {
+  color: #334155;
+}
+
+html:not(.dark) .text-slate-400,
+html:not(.dark) .text-slate-500 {
+  color: #64748b;
+}
+
+html:not(.dark) .hover\:text-white:hover {
+  color: #dc2626;
+}
+
+html:not(.dark) :is(.bg-blue-600, .bg-red-600, .bg-emerald-600, .bg-rose-600, .bg-amber-600, .bg-cyan-600, .bg-violet-600).hover\:text-white:hover {
+  color: #ffffff;
+}
+
+html:not(.dark) .bg-blue-600 {
+  background-color: #dc2626;
+}
+
+html:not(.dark) .hover\:bg-blue-500:hover,
+html:not(.dark) .hover\:bg-blue-600:hover {
+  background-color: #b91c1c;
+}
+
+html:not(.dark) .bg-blue-600\/20,
+html:not(.dark) .bg-blue-600\/15,
+html:not(.dark) .bg-blue-500\/15,
+html:not(.dark) .bg-blue-500\/10 {
+  background-color: #fef2f2;
+}
+
+html:not(.dark) .border-blue-500,
+html:not(.dark) .border-blue-500\/40,
+html:not(.dark) .border-blue-500\/30,
+html:not(.dark) .border-blue-500\/25 {
+  border-color: #fecaca;
+}
+
+html:not(.dark) .hover\:border-blue-500:hover,
+html:not(.dark) .focus\:border-blue-500:focus {
+  border-color: #dc2626;
+}
+
+html:not(.dark) .text-blue-500,
+html:not(.dark) .text-blue-400,
+html:not(.dark) .text-blue-300 {
+  color: #dc2626;
+}
+
+html:not(.dark) .bg-emerald-500\/15,
+html:not(.dark) .bg-emerald-500\/10 {
+  background-color: #ecfdf5;
+}
+html:not(.dark) .border-emerald-500\/30,
+html:not(.dark) .border-emerald-500\/20 {
+  border-color: #a7f3d0;
+}
+html:not(.dark) .text-emerald-400,
+html:not(.dark) .text-emerald-300 {
+  color: #047857;
+}
+
+html:not(.dark) .bg-amber-500\/15,
+html:not(.dark) .bg-amber-500\/10 {
+  background-color: #fffbeb;
+}
+html:not(.dark) .border-amber-500\/40,
+html:not(.dark) .border-amber-500\/30 {
+  border-color: #fde68a;
+}
+html:not(.dark) .text-amber-400,
+html:not(.dark) .text-amber-300,
+html:not(.dark) .text-amber-200 {
+  color: #b45309;
+}
+
+html:not(.dark) .bg-red-500\/15,
+html:not(.dark) .bg-red-500\/10,
+html:not(.dark) .bg-red-600\/20 {
+  background-color: #fff1f2;
+}
+html:not(.dark) .border-red-500\/30 {
+  border-color: #fecdd3;
+}
+html:not(.dark) .text-red-400,
+html:not(.dark) .text-red-300 {
+  color: #be123c;
+}
+
+html:not(.dark) .bg-cyan-500\/10 {
+  background-color: #ecfeff;
+}
+html:not(.dark) .border-cyan-500\/30 {
+  border-color: #a5f3fc;
+}
+html:not(.dark) .text-cyan-400 {
+  color: #0e7490;
+}
+
+html:not(.dark) .text-violet-400,
+html:not(.dark) .text-purple-400 {
+  color: #6d28d9;
+}
+
+html.dark .bg-slate-950 {
+  background-color: #09090b;
+}
+
+html.dark .bg-slate-900 {
+  background-color: #18181b;
+}
+
+html.dark .bg-slate-800 {
+  background-color: #27272a;
+}
+
+html.dark .border-slate-800,
+html.dark .border-slate-800\/80,
+html.dark .border-slate-700 {
+  border-color: #27272a;
+}
+
+html.dark .bg-blue-600 {
+  background-color: #dc2626;
+}
+
+html.dark .hover\:bg-blue-500:hover,
+html.dark .hover\:bg-blue-600:hover {
+  background-color: #ef4444;
+}
+
+html.dark .bg-blue-600\/20,
+html.dark .bg-blue-600\/15,
+html.dark .bg-blue-500\/15,
+html.dark .bg-blue-500\/10 {
+  background-color: rgba(239, 68, 68, 0.14);
+}
+
+html.dark .border-blue-500,
+html.dark .border-blue-500\/40,
+html.dark .border-blue-500\/30,
+html.dark .border-blue-500\/25 {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+html.dark .hover\:border-blue-500:hover,
+html.dark .focus\:border-blue-500:focus {
+  border-color: #ef4444;
+}
+
+html.dark .text-blue-400,
+html.dark .text-blue-300 {
+  color: #f87171;
+}
