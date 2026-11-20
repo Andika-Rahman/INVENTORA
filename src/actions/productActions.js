@@ -165,6 +165,66 @@ export async function updateProductAction(prevState, formData) {
     return { success: 'Data produk berhasil diperbarui.' };
 }
 
+export async function updateProductStockAction(prevState, formData) {
+    const session = await getSession();
+    if (!session || !['admin', 'warehouse_manager', 'staff_gudang'].includes(session.role)) {
+        return { error: 'Anda tidak memiliki izin memperbarui stok produk.' };
+    }
+
+    const productId = Number(formData.get('id'));
+    const adjustmentType = String(formData.get('adjustment_type') || 'set').trim();
+    const quantity = Number(formData.get('quantity'));
+
+    if (!productId || Number.isNaN(quantity) || quantity < 0 || !Number.isInteger(quantity)) {
+        return { error: 'Jumlah stok harus berupa bilangan bulat non-negatif.' };
+    }
+
+    const productRes = await query(
+        'SELECT id, name, stock, unit FROM products WHERE id = $1 LIMIT 1',
+        [productId]
+    );
+
+    if (productRes.rows.length === 0) {
+        return { error: 'Produk komponen tidak ditemukan.' };
+    }
+
+    const product = productRes.rows[0];
+    let newStock = product.stock;
+
+    if (adjustmentType === 'set') {
+        newStock = quantity;
+    } else if (adjustmentType === 'add') {
+        if (quantity <= 0) {
+        return { error: 'Jumlah penambahan stok harus lebih dari 0.' };
+        }
+        newStock = product.stock + quantity;
+    } else if (adjustmentType === 'subtract') {
+        if (quantity <= 0) {
+        return { error: 'Jumlah pengurangan stok harus lebih dari 0.' };
+        }
+        if (quantity > product.stock) {
+        return {
+            error: `Pengurangan (${quantity}) melebihi stok saat ini (${product.stock} ${product.unit}).`,
+        };
+        }
+        newStock = product.stock - quantity;
+    } else {
+        return { error: 'Metode pembaruan stok tidak valid.' };
+    }
+
+    await query(
+        'UPDATE products SET stock = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        [newStock, productId]
+    );
+
+    revalidatePath('/dashboard/products');
+    revalidatePath(`/dashboard/products/${productId}`);
+    revalidatePath('/dashboard');
+    return {
+        success: `Stok ${product.name} berhasil diperbarui menjadi ${newStock} ${product.unit}.`,
+    };
+}
+
 export async function deleteProductAction(productId) {
     const session = await getSession();
     if (!session || !['admin', 'warehouse_manager'].includes(session.role)) {
