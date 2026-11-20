@@ -1,4 +1,5 @@
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { FloatingThemeToggle } from '@/components/theme/ThemeToggle';
@@ -34,10 +35,10 @@ const themeInitScript = `
 export default function RootLayout({ children }) {
   return (
     <html lang="id" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-      </head>
       <body className="font-sans antialiased bg-slate-50 text-slate-900 dark:bg-zinc-950 dark:text-zinc-100">
+        <Script id="inventora-theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
         <ThemeProvider>
           {children}
           <FloatingThemeToggle />
