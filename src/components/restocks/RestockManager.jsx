@@ -35,7 +35,9 @@ export default function RestockManager({
     preselectedProductId,
     }) {
     const canCreateAndManage = ['admin', 'warehouse_manager'].includes(role);
+    const canConfirmReceipt = ['admin', 'warehouse_manager', 'staff_gudang'].includes(role);
     const isSupplier = role === 'supplier';
+    const isStaffGudang = role === 'staff_gudang';
 
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [createModalOpen, setCreateModalOpen] = useState(
@@ -163,6 +165,8 @@ export default function RestockManager({
             <p className="text-sm text-slate-400 mt-1">
                 {isSupplier
                 ? 'Konfirmasi ketersediaan stok dan pantau progres pengiriman pesanan restock'
+                : isStaffGudang
+                ? 'Pantau pengiriman pesanan restock dari supplier dan konfirmasi penerimaan barang (Received)'
                 : 'Pengajuan restock komponen ke supplier dan pemantauan status pengiriman PO'}
             </p>
             </div>
@@ -326,7 +330,7 @@ export default function RestockManager({
                         </button>
                         )}
 
-                        {canCreateAndManage && order.status === 'In Transit' && (
+                        {canConfirmReceipt && order.status === 'In Transit' && (
                         <button
                             type="button"
                             disabled={busyOrderId === order.id}
@@ -426,7 +430,7 @@ export default function RestockManager({
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-800 text-xs">
                         <span className="text-emerald-400">
                         Barang telah tiba (Received). Staff Gudang dapat mencatat Incoming
-                        Transaction menggunakan nomor PO ini agar stok bertambah setelah di-approve.
+                        Transaction menggunakan nomor PO ini untuk memperbarui stok gudang.
                         </span>
 
                         {order.supplier_rating && (

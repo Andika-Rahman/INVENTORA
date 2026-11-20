@@ -56,10 +56,6 @@ const secretKey = new TextEncoder().encode(
         if (pathname.startsWith('/dashboard/products') && session.role === 'supplier') {
         return NextResponse.redirect(new URL('/dashboard', request.url));
         }
-
-        if (pathname.startsWith('/dashboard/restocks') && session.role === 'staff_gudang') {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
     }
 
     return NextResponse.next();

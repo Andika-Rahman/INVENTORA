@@ -5,8 +5,8 @@ import RestockManager from '@/components/restocks/RestockManager';
 
 export default async function RestocksPage({ searchParams }) {
     const session = await getSession();
-    if (!session || session.role === 'staff_gudang') {
-        redirect('/dashboard');
+    if (!session) {
+        redirect('/login');
     }
 
     const resolvedParams = await searchParams;

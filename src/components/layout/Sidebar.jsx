@@ -61,6 +61,7 @@ export default function Sidebar({
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { label: 'Produk Komponen', href: '/dashboard/products', icon: Package },
         { label: 'Transaksi Gudang', href: '/dashboard/transactions', icon: ArrowLeftRight },
+        { label: 'Restock Order (PO)', href: '/dashboard/restocks', icon: Truck },
         ],
         supplier: [
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },

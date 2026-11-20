@@ -142,7 +142,7 @@ export async function supplierRespondRestockAction(orderId, decision, statusNote
 
 export async function advanceRestockStatusAction(orderId, nextStatus) {
     const session = await getSession();
-    if (!session || !['admin', 'warehouse_manager'].includes(session.role)) {
+    if (!session || !['admin', 'warehouse_manager', 'staff_gudang'].includes(session.role)) {
         return { error: 'Anda tidak memiliki izin memperbarui status pengiriman PO.' };
     }
 
@@ -156,9 +156,12 @@ export async function advanceRestockStatusAction(orderId, nextStatus) {
     }
 
     const currentStatus = currentRes.rows[0].status;
+    const canSetInTransit = ['admin', 'warehouse_manager'].includes(session.role);
+    const canSetReceived = ['admin', 'warehouse_manager', 'staff_gudang'].includes(session.role);
+
     const isValidTransition =
-        (currentStatus === 'Confirmed' && nextStatus === 'In Transit') ||
-        (currentStatus === 'In Transit' && nextStatus === 'Received');
+        (currentStatus === 'Confirmed' && nextStatus === 'In Transit' && canSetInTransit) ||
+        (currentStatus === 'In Transit' && nextStatus === 'Received' && canSetReceived);
 
     if (!isValidTransition) {
         return { error: `Perubahan status dari ${currentStatus} ke ${nextStatus} tidak diizinkan.` };
