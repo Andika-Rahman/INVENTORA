@@ -64,8 +64,13 @@ export async function createIncomingTransactionAction(prevState, formData) {
         [restockOrderId]
         );
 
-        if (poRes.rows.length === 0 || poRes.rows[0].status !== 'Received') {
-        return { error: 'Nomor PO tidak valid atau belum berstatus Received.' };
+        if (
+        poRes.rows.length === 0 ||
+        !['Received', 'Pesanan Diperiksa'].includes(poRes.rows[0].status)
+        ) {
+        return {
+            error: 'Nomor PO tidak valid atau belum berstatus Received / Pesanan Diperiksa.',
+        };
         }
 
         const usedCheck = await query(
@@ -129,7 +134,7 @@ export async function createIncomingTransactionAction(prevState, formData) {
         await client.query('COMMIT');
     } catch {
         await client.query('ROLLBACK');
-        return { error: 'Gagal menyimpan transaksi barang masuk. Pastikan Nomor PO belum terpakai.' };
+        return { error: 'Gagal menyimpan laporan barang masuk. Pastikan Nomor PO belum terpakai.' };
     } finally {
         client.release();
     }
@@ -139,14 +144,14 @@ export async function createIncomingTransactionAction(prevState, formData) {
     revalidatePath('/dashboard');
 
     return {
-        success: `Transaksi barang masuk ${trxNumber} berhasil dicatat (status Pending) dan menunggu approval Manager sebelum stok bertambah.`,
+        success: `Laporan barang masuk ${trxNumber} berhasil dikirim (status Pending) dan menunggu konfirmasi Manager sebelum stok bertambah.`,
     };
 }
 
 export async function createOutgoingTransactionAction(prevState, formData) {
     const session = await getSession();
     if (!session || !['staff_gudang', 'admin'].includes(session.role)) {
-        return { error: 'Hanya Staff Gudang atau Admin yang dapat mencatat barang keluar.' };
+        return { error: 'Hanya Staff Gudang atau Admin yang dapat mengajukan barang keluar.' };
     }
 
     const transactionDate = String(formData.get('transaction_date') || '').trim();
@@ -218,7 +223,7 @@ export async function createOutgoingTransactionAction(prevState, formData) {
         await client.query('COMMIT');
     } catch {
         await client.query('ROLLBACK');
-        return { error: 'Gagal menyimpan transaksi barang keluar.' };
+        return { error: 'Gagal menyimpan pengajuan barang keluar.' };
     } finally {
         client.release();
     }
@@ -228,7 +233,7 @@ export async function createOutgoingTransactionAction(prevState, formData) {
     revalidatePath('/dashboard');
 
     return {
-        success: `Transaksi barang keluar ${trxNumber} berhasil dicatat (status Pending) dan menunggu approval Manager.`,
+        success: `Pengajuan barang keluar ${trxNumber} berhasil dibuat (status Pending) dan menunggu persetujuan Manager sebelum proses packing.`,
     };
 }
 
@@ -402,18 +407,11 @@ export async function approveTransactionAction(transactionId) {
             'UPDATE products SET stock = stock + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
             [item.quantity, product.id]
             );
-        } else {
-            if (product.stock < item.quantity) {
+        } else if (product.stock < item.quantity) {
             await client.query('ROLLBACK');
             return {
-                error: `Approval gagal: stok ${product.name} tersisa ${product.stock} ${product.unit}, tidak cukup untuk pengeluaran ${item.quantity} ${product.unit}.`,
+            error: `Approval gagal: stok ${product.name} tersisa ${product.stock} ${product.unit}, tidak cukup untuk pengeluaran ${item.quantity} ${product.unit}.`,
             };
-            }
-
-            await client.query(
-            'UPDATE products SET stock = stock - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-            [item.quantity, product.id]
-            );
         }
         }
 
@@ -435,7 +433,11 @@ export async function approveTransactionAction(transactionId) {
     revalidatePath('/dashboard/transactions');
     revalidatePath('/dashboard/products');
     revalidatePath('/dashboard');
-    return { success: 'Transaksi berhasil di-approve dan stok gudang telah diperbarui.' };
+
+    return {
+        success:
+        'Transaksi disetujui. Untuk Barang Masuk stok telah bertambah, sedangkan untuk Barang Keluar siap di-packing dan dikirim oleh Staff.',
+    };
 }
 
 export async function rejectTransactionAction(transactionId, rejectionReason) {
@@ -446,7 +448,7 @@ export async function rejectTransactionAction(transactionId, rejectionReason) {
 
     const trimmedReason = String(rejectionReason || '').trim();
     if (!trimmedReason) {
-        return { error: 'Alasan penolakan wajib diisi.' };
+        return { error: 'Alasan penolakan / ketidaksesuaian wajib diisi.' };
     }
 
     const trxRes = await query(
@@ -467,37 +469,85 @@ export async function rejectTransactionAction(transactionId, rejectionReason) {
 
     revalidatePath('/dashboard/transactions');
     revalidatePath('/dashboard');
-    return { success: 'Transaksi telah ditolak dan stok tidak berubah.' };
+    return { success: 'Transaksi ditolak (tidak sesuai permintaan) dan stok tidak berubah.' };
 }
 
 export async function markTransactionShippedAction(transactionId) {
     const session = await getSession();
     if (!session || !['staff_gudang', 'admin'].includes(session.role)) {
-        return { error: 'Hanya Staff Gudang atau Admin yang dapat menandai pengiriman.' };
+        return { error: 'Hanya Staff Gudang atau Admin yang dapat mengirim barang keluar.' };
     }
 
-    const trxRes = await query(
-        'SELECT id, type, status FROM transactions WHERE id = $1 LIMIT 1',
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const trxRes = await client.query(
+        'SELECT id, type, status FROM transactions WHERE id = $1 FOR UPDATE',
         [Number(transactionId)]
-    );
+        );
 
-    if (trxRes.rows.length === 0) {
+        if (trxRes.rows.length === 0) {
+        await client.query('ROLLBACK');
         return { error: 'Transaksi tidak ditemukan.' };
-    }
+        }
 
-    const trx = trxRes.rows[0];
-    if (trx.type !== 'OUT' || trx.status !== 'Approved') {
+        const trx = trxRes.rows[0];
+        if (trx.type !== 'OUT' || trx.status !== 'Approved') {
+        await client.query('ROLLBACK');
         return {
-        error: 'Hanya transaksi Barang Keluar berstatus Approved yang dapat ditandai Shipped.',
+            error: 'Hanya transaksi Barang Keluar berstatus Approved yang dapat dikirim.',
         };
-    }
+        }
 
-    await query(
+        const itemsRes = await client.query(
+        'SELECT product_id, quantity FROM transaction_items WHERE transaction_id = $1',
+        [trx.id]
+        );
+
+        for (const item of itemsRes.rows) {
+        const prodRes = await client.query(
+            'SELECT id, name, stock, unit FROM products WHERE id = $1 FOR UPDATE',
+            [item.product_id]
+        );
+
+        if (prodRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return { error: 'Produk pada item transaksi tidak ditemukan.' };
+        }
+
+        const product = prodRes.rows[0];
+        if (product.stock < item.quantity) {
+            await client.query('ROLLBACK');
+            return {
+            error: `Pengiriman gagal: stok ${product.name} tersisa ${product.stock} ${product.unit}, tidak mencukupi untuk dikirim (${item.quantity} ${product.unit}).`,
+            };
+        }
+
+        await client.query(
+            'UPDATE products SET stock = stock - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [item.quantity, product.id]
+        );
+        }
+
+        await client.query(
         "UPDATE transactions SET status = 'Shipped', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
         [trx.id]
-    );
+        );
+
+        await client.query('COMMIT');
+    } catch {
+        await client.query('ROLLBACK');
+        return { error: 'Terjadi kesalahan saat memproses pengiriman barang keluar.' };
+    } finally {
+        client.release();
+    }
 
     revalidatePath('/dashboard/transactions');
+    revalidatePath('/dashboard/products');
     revalidatePath('/dashboard');
-    return { success: 'Status transaksi diperbarui menjadi Shipped.' };
+    return {
+        success: 'Barang keluar telah dikirim (Shipped), stok gudang berkurang, dan proses selesai.',
+    };
 }

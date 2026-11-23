@@ -11,6 +11,7 @@ export default async function RestocksPage({ searchParams }) {
 
     const resolvedParams = await searchParams;
     const preselectedProductId = String(resolvedParams?.product_id || '').trim();
+    const refundFromPoId = String(resolvedParams?.refund_po_id || '').trim();
 
     let orderSql = `
         SELECT
@@ -22,11 +23,28 @@ export default async function RestocksPage({ searchParams }) {
         ro.notes,
         ro.status,
         ro.status_notes,
+        ro.arrival_photo_url,
+        ro.inspection_notes,
+        ro.refund_reason,
         ro.supplier_rating,
         ro.supplier_feedback,
         u_sup.name AS supplier_name,
         u_sup.company_name AS supplier_company,
-        u_mgr.name AS created_by_name
+        u_mgr.name AS created_by_name,
+        (
+            SELECT t.status
+            FROM transactions t
+            WHERE t.restock_order_id = ro.id
+            ORDER BY t.created_at DESC
+            LIMIT 1
+        ) AS latest_trx_status,
+        (
+            SELECT t.rejection_reason
+            FROM transactions t
+            WHERE t.restock_order_id = ro.id AND t.status = 'Rejected'
+            ORDER BY t.created_at DESC
+            LIMIT 1
+        ) AS latest_trx_rejection
         FROM restock_orders ro
         JOIN users u_sup ON ro.supplier_id = u_sup.id
         JOIN users u_mgr ON ro.created_by = u_mgr.id
@@ -84,6 +102,7 @@ export default async function RestocksPage({ searchParams }) {
         products={productsRes.rows}
         role={session.role}
         preselectedProductId={preselectedProductId}
+        refundFromPoId={refundFromPoId}
         />
     );
 }

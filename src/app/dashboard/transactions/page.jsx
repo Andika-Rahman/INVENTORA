@@ -19,6 +19,7 @@ export default async function TransactionsPage({ searchParams }) {
     const partySearch = String(resolvedParams?.party || '').trim();
     const sort = String(resolvedParams?.sort || 'newest').trim();
     const preselectedProductId = String(resolvedParams?.product_id || '').trim();
+    const preselectedPoId = String(resolvedParams?.po_id || '').trim();
     const initialModalType = String(resolvedParams?.open || '').toUpperCase();
 
     const conditions = [];
@@ -71,6 +72,7 @@ export default async function TransactionsPage({ searchParams }) {
             t.rejection_reason,
             t.created_by,
             ro.po_number,
+            ro.status AS po_status,
             u_sup.name AS supplier_name,
             u_sup.company_name AS supplier_company,
             u_crt.name AS created_by_name,
@@ -102,11 +104,12 @@ export default async function TransactionsPage({ searchParams }) {
             ro.id,
             ro.po_number,
             ro.supplier_id,
+            ro.status,
             u.name AS supplier_name,
             u.company_name AS supplier_company
             FROM restock_orders ro
             JOIN users u ON ro.supplier_id = u.id
-            WHERE ro.status = 'Received'
+            WHERE ro.status IN ('Pesanan Diperiksa', 'Received')
             AND NOT EXISTS (
                 SELECT 1 FROM transactions t
                 WHERE t.restock_order_id = ro.id AND t.status <> 'Rejected'
@@ -166,7 +169,7 @@ export default async function TransactionsPage({ searchParams }) {
             <div>
             <h1 className="text-2xl font-bold text-white">Transaksi Gudang</h1>
             <p className="text-sm text-slate-400 mt-1">
-                Pencatatan dan validasi arus barang masuk dari supplier serta barang keluar ke tujuan
+                Laporan pemeriksaan barang masuk dari supplier serta pengajuan dan pengiriman barang keluar
             </p>
             </div>
 
@@ -277,6 +280,7 @@ export default async function TransactionsPage({ searchParams }) {
             role={session.role}
             activeTab={activeTab}
             preselectedProductId={preselectedProductId}
+            preselectedPoId={preselectedPoId}
             initialModalType={initialModalType}
         />
         </div>

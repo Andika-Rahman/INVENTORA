@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useActionState, useEffect } from 'react';
+import Link from 'next/link';
 import {
     Plus,
     Trash2,
@@ -14,41 +15,81 @@ import {
     AlertCircle,
     Building2,
     Calendar,
+    Camera,
+    ClipboardCheck,
+    RotateCcw,
+    FilePlus2,
+    ExternalLink,
 } from 'lucide-react';
 import ExportCsvButton from '@/components/ui/ExportCsvButton';
 import { formatDate } from '@/lib/formatters';
 import {
     createRestockOrderAction,
     supplierRespondRestockAction,
-    advanceRestockStatusAction,
+    supplierShipRestockAction,
+    confirmArrivalWithPhotoAction,
+    managerRequestInspectionAction,
+    managerRequestRefundAction,
     rateSupplierRestockAction,
 } from '@/actions/restockActions';
 
 const initialFormState = { error: '', success: '' };
-const timelineSteps = ['Pending', 'Confirmed', 'In Transit', 'Received'];
+const timelineSteps = [
+    'Pending',
+    'Confirmed',
+    'In Transit',
+    'Received',
+    'Pesanan Diperiksa',
+    ];
 
-export default function RestockManager({
+    export default function RestockManager({
     orders,
     suppliers,
     products,
     role,
     preselectedProductId,
+    refundFromPoId,
     }) {
     const canCreateAndManage = ['admin', 'warehouse_manager'].includes(role);
-    const canConfirmReceipt = ['admin', 'warehouse_manager', 'staff_gudang'].includes(role);
+    const canConfirmArrival = ['admin', 'warehouse_manager', 'staff_gudang'].includes(role);
     const isSupplier = role === 'supplier';
     const isStaffGudang = role === 'staff_gudang';
 
+    const refundSourceOrder = refundFromPoId
+        ? orders.find((o) => String(o.id) === String(refundFromPoId))
+        : null;
+
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [createModalOpen, setCreateModalOpen] = useState(
-        Boolean(canCreateAndManage && preselectedProductId)
+        Boolean(canCreateAndManage && (preselectedProductId || refundSourceOrder))
     );
-    const [orderItems, setOrderItems] = useState([
-        { productId: preselectedProductId || '', quantity: 5 },
-    ]);
+    const [selectedSupplierId, setSelectedSupplierId] = useState(
+        refundSourceOrder ? String(refundSourceOrder.supplier_id) : ''
+    );
+    const [orderNotes, setOrderNotes] = useState(
+        refundSourceOrder
+        ? `Pesanan pengganti atas refund ${refundSourceOrder.po_number}`
+        : ''
+    );
+    const [orderItems, setOrderItems] = useState(
+        refundSourceOrder && refundSourceOrder.items.length > 0
+        ? refundSourceOrder.items.map((item) => ({
+            productId: String(item.product_id),
+            quantity: item.quantity,
+            }))
+        : [{ productId: preselectedProductId || '', quantity: 5 }]
+    );
 
     const [rejectModalOrder, setRejectModalOrder] = useState(null);
     const [rejectReason, setRejectReason] = useState('');
+
+    const [arrivalModalOrder, setArrivalModalOrder] = useState(null);
+
+    const [inspectModalOrder, setInspectModalOrder] = useState(null);
+    const [inspectNotes, setInspectNotes] = useState('');
+
+    const [refundModalOrder, setRefundModalOrder] = useState(null);
+    const [refundReason, setRefundReason] = useState('');
 
     const [ratingModalOrder, setRatingModalOrder] = useState(null);
     const [selectedRating, setSelectedRating] = useState(5);
@@ -62,15 +103,31 @@ export default function RestockManager({
         initialFormState
     );
 
+    const [arrivalState, arrivalFormAction, isSubmittingArrival] = useActionState(
+        confirmArrivalWithPhotoAction,
+        initialFormState
+    );
+
     useEffect(() => {
         if (createState?.success) {
         const timer = setTimeout(() => {
             setCreateModalOpen(false);
+            setSelectedSupplierId('');
+            setOrderNotes('');
             setOrderItems([{ productId: '', quantity: 5 }]);
         }, 650);
         return () => clearTimeout(timer);
         }
     }, [createState?.success]);
+
+    useEffect(() => {
+        if (arrivalState?.success) {
+        const timer = setTimeout(() => {
+            setArrivalModalOrder(null);
+        }, 650);
+        return () => clearTimeout(timer);
+        }
+    }, [arrivalState?.success]);
 
     const filteredOrders =
         statusFilter === 'ALL'
@@ -78,6 +135,26 @@ export default function RestockManager({
         : orders.filter((order) => order.status === statusFilter);
 
     const todayStr = new Date().toISOString().split('T')[0];
+
+    function openNewPoFromOrder(sourceOrder = null) {
+        if (sourceOrder) {
+        setSelectedSupplierId(String(sourceOrder.supplier_id));
+        setOrderNotes(`Pesanan baru pengganti ${sourceOrder.po_number}`);
+        setOrderItems(
+            sourceOrder.items.length > 0
+            ? sourceOrder.items.map((item) => ({
+                productId: String(item.product_id),
+                quantity: item.quantity,
+                }))
+            : [{ productId: '', quantity: 5 }]
+        );
+        } else {
+        setSelectedSupplierId('');
+        setOrderNotes('');
+        setOrderItems([{ productId: '', quantity: 5 }]);
+        }
+        setCreateModalOpen(true);
+    }
 
     function addItemRow() {
         setOrderItems((prev) => [...prev, { productId: '', quantity: 1 }]);
@@ -97,6 +174,15 @@ export default function RestockManager({
         setBusyOrderId(orderId);
         setActionMessage({ error: '', success: '' });
         const res = await supplierRespondRestockAction(orderId, 'Confirmed', '');
+        setBusyOrderId(null);
+        if (res?.error) setActionMessage({ error: res.error, success: '' });
+        else setActionMessage({ error: '', success: res.success });
+    }
+
+    async function handleSupplierShip(orderId) {
+        setBusyOrderId(orderId);
+        setActionMessage({ error: '', success: '' });
+        const res = await supplierShipRestockAction(orderId);
         setBusyOrderId(null);
         if (res?.error) setActionMessage({ error: res.error, success: '' });
         else setActionMessage({ error: '', success: res.success });
@@ -124,13 +210,42 @@ export default function RestockManager({
         }
     }
 
-    async function handleAdvanceStatus(orderId, nextStatus) {
-        setBusyOrderId(orderId);
+    async function handleRequestInspectionSubmit(event) {
+        event.preventDefault();
+        if (!inspectModalOrder) return;
+
+        setBusyOrderId(inspectModalOrder.id);
         setActionMessage({ error: '', success: '' });
-        const res = await advanceRestockStatusAction(orderId, nextStatus);
+        const res = await managerRequestInspectionAction(inspectModalOrder.id, inspectNotes);
         setBusyOrderId(null);
-        if (res?.error) setActionMessage({ error: res.error, success: '' });
-        else setActionMessage({ error: '', success: res.success });
+
+        if (res?.error) {
+        setActionMessage({ error: res.error, success: '' });
+        } else {
+        setActionMessage({ error: '', success: res.success });
+        setInspectModalOrder(null);
+        setInspectNotes('');
+        }
+    }
+
+    async function handleRefundSubmit(event) {
+        event.preventDefault();
+        if (!refundModalOrder) return;
+
+        const targetOrder = refundModalOrder;
+        setBusyOrderId(targetOrder.id);
+        setActionMessage({ error: '', success: '' });
+        const res = await managerRequestRefundAction(targetOrder.id, refundReason);
+        setBusyOrderId(null);
+
+        if (res?.error) {
+        setActionMessage({ error: res.error, success: '' });
+        } else {
+        setActionMessage({ error: '', success: res.success });
+        setRefundModalOrder(null);
+        setRefundReason('');
+        openNewPoFromOrder(targetOrder);
+        }
     }
 
     async function handleRatingSubmit(event) {
@@ -155,7 +270,16 @@ export default function RestockManager({
         }
     }
 
-    const filterTabs = ['ALL', 'Pending', 'Confirmed', 'In Transit', 'Received', 'Rejected'];
+    const filterTabs = [
+        'ALL',
+        'Pending',
+        'Confirmed',
+        'In Transit',
+        'Received',
+        'Pesanan Diperiksa',
+        'Refund Diajukan',
+        'Rejected',
+    ];
 
     return (
         <div className="space-y-6">
@@ -164,10 +288,10 @@ export default function RestockManager({
             <h1 className="text-2xl font-bold text-white">Restock Management (Purchase Order)</h1>
             <p className="text-sm text-slate-400 mt-1">
                 {isSupplier
-                ? 'Konfirmasi ketersediaan stok, tandai pengiriman (In Transit), dan pantau progres pesanan restock'
+                ? 'Konfirmasi ketersediaan stok, kirim barang (In Transit), dan pantau progres pesanan restock'
                 : isStaffGudang
-                ? 'Pantau pengiriman pesanan restock dari supplier dan konfirmasi penerimaan barang (Received)'
-                : 'Pengajuan restock komponen ke supplier dan pemantauan status pengiriman PO'}
+                ? 'Dokumentasi kedatangan barang, pemeriksaan fisik pesanan, dan pembuatan laporan barang masuk'
+                : 'Pengajuan restock ke supplier, verifikasi foto kedatangan, instruksi pemeriksaan, dan pengajuan refund'}
             </p>
             </div>
 
@@ -176,7 +300,7 @@ export default function RestockManager({
                 <ExportCsvButton moduleName="restocks" label="Export Restock PO (CSV)" />
                 <button
                 type="button"
-                onClick={() => setCreateModalOpen(true)}
+                onClick={() => openNewPoFromOrder(null)}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer"
                 >
                 <Plus className="w-4 h-4" />
@@ -244,6 +368,7 @@ export default function RestockManager({
             {filteredOrders.map((order) => {
                 const currentStepIndex = timelineSteps.indexOf(order.status);
                 const isRejected = order.status === 'Rejected';
+                const isRefundRequested = order.status === 'Refund Diajukan';
 
                 return (
                 <div
@@ -258,8 +383,12 @@ export default function RestockManager({
                         </span>
                         <span
                             className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
-                            order.status === 'Received'
+                            order.status === 'Pesanan Diperiksa'
+                                ? 'bg-purple-500/10 text-purple-300 border-purple-500/30'
+                                : order.status === 'Received'
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                : order.status === 'Refund Diajukan'
+                                ? 'bg-orange-500/10 text-orange-300 border-orange-500/30'
                                 : order.status === 'Rejected'
                                 ? 'bg-red-500/10 text-red-400 border-red-500/30'
                                 : order.status === 'In Transit'
@@ -271,6 +400,11 @@ export default function RestockManager({
                         >
                             {order.status}
                         </span>
+                        {order.latest_trx_status === 'Approved' && (
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            Laporan Masuk Disetujui & Stok Bertambah
+                            </span>
+                        )}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
@@ -322,7 +456,7 @@ export default function RestockManager({
                         <button
                             type="button"
                             disabled={busyOrderId === order.id}
-                            onClick={() => handleAdvanceStatus(order.id, 'In Transit')}
+                            onClick={() => handleSupplierShip(order.id)}
                             className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                         >
                             <Truck className="w-4 h-4" />
@@ -330,20 +464,86 @@ export default function RestockManager({
                         </button>
                         )}
 
-                        {canConfirmReceipt && order.status === 'In Transit' && (
+                        {canConfirmArrival && order.status === 'In Transit' && (
                         <button
                             type="button"
-                            disabled={busyOrderId === order.id}
-                            onClick={() => handleAdvanceStatus(order.id, 'Received')}
+                            onClick={() => setArrivalModalOrder(order)}
                             className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                         >
-                            <PackageCheck className="w-4 h-4" />
-                            <span>Tandai Received</span>
+                            <Camera className="w-4 h-4" />
+                            <span>Tandai Tiba & Kirim Foto Dokumentasi</span>
+                        </button>
+                        )}
+
+                        {canCreateAndManage && order.status === 'Received' && (
+                        <>
+                            <button
+                            type="button"
+                            onClick={() => {
+                                setInspectNotes('');
+                                setInspectModalOrder(order);
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            >
+                            <ClipboardCheck className="w-4 h-4" />
+                            <span>Konfirmasi Cek ke Staff (Pesanan Diperiksa)</span>
+                            </button>
+                            <button
+                            type="button"
+                            onClick={() => {
+                                setRefundReason(order.latest_trx_rejection || '');
+                                setRefundModalOrder(order);
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-orange-600/20 hover:bg-orange-600 text-orange-300 hover:text-white border border-orange-500/30 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            >
+                            <RotateCcw className="w-4 h-4" />
+                            <span>Tolak & Ajukan Refund</span>
+                            </button>
+                        </>
+                        )}
+
+                        {isStaffGudang &&
+                        order.status === 'Pesanan Diperiksa' &&
+                        order.latest_trx_status !== 'Approved' &&
+                        order.latest_trx_status !== 'Pending' && (
+                            <Link
+                            href={`/dashboard/transactions?open=IN&po_id=${order.id}`}
+                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-1.5"
+                            >
+                            <FilePlus2 className="w-4 h-4" />
+                            <span>Buat Laporan Barang Masuk</span>
+                            </Link>
+                        )}
+
+                        {canCreateAndManage &&
+                        order.status === 'Pesanan Diperiksa' &&
+                        order.latest_trx_status !== 'Approved' && (
+                            <button
+                            type="button"
+                            onClick={() => {
+                                setRefundReason(order.latest_trx_rejection || '');
+                                setRefundModalOrder(order);
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-orange-600/20 hover:bg-orange-600 text-orange-300 hover:text-white border border-orange-500/30 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            >
+                            <RotateCcw className="w-4 h-4" />
+                            <span>Ajukan Refund & Pesan Ulang</span>
+                            </button>
+                        )}
+
+                        {canCreateAndManage && isRefundRequested && (
+                        <button
+                            type="button"
+                            onClick={() => openNewPoFromOrder(order)}
+                            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Buat Pesanan Baru (PO)</span>
                         </button>
                         )}
 
                         {canCreateAndManage &&
-                        order.status === 'Received' &&
+                        ['Received', 'Pesanan Diperiksa'].includes(order.status) &&
                         !order.supplier_rating && (
                             <button
                             type="button"
@@ -371,8 +571,31 @@ export default function RestockManager({
                         </p>
                         </div>
                     </div>
+                    ) : isRefundRequested ? (
+                    <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/30 text-xs text-orange-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-start gap-2.5">
+                        <RotateCcw className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-bold text-orange-300">
+                            Pesanan Tidak Sesuai — Refund Diajukan oleh Manager
+                            </p>
+                            <p className="mt-0.5">
+                            Alasan Refund: {order.refund_reason || 'Barang tidak sesuai permintaan.'}
+                            </p>
+                        </div>
+                        </div>
+                        {canCreateAndManage && (
+                        <button
+                            type="button"
+                            onClick={() => openNewPoFromOrder(order)}
+                            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shrink-0 cursor-pointer"
+                        >
+                            Buat Pesanan Baru
+                        </button>
+                        )}
+                    </div>
                     ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                         {timelineSteps.map((step, index) => {
                         const isCompleted = index <= currentStepIndex;
                         return (
@@ -395,6 +618,66 @@ export default function RestockManager({
                             </div>
                         );
                         })}
+                    </div>
+                    )}
+
+                    {order.arrival_photo_url && (
+                    <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2.5">
+                        <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <div>
+                            <p className="font-semibold text-slate-200">
+                            Foto Dokumentasi Kedatangan Barang Terlampir
+                            </p>
+                            <p className="text-slate-400 font-mono text-[11px]">
+                            {order.arrival_photo_url}
+                            </p>
+                        </div>
+                        </div>
+                        <a
+                        href={order.arrival_photo_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-300 font-semibold shrink-0"
+                        >
+                        <span>Lihat Foto Dokumentasi</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                    </div>
+                    )}
+
+                    {order.inspection_notes && (
+                    <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs text-purple-200 flex items-start gap-2.5">
+                        <ClipboardCheck className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                        <div>
+                        <p className="font-bold text-purple-300">
+                            Instruksi Pemeriksaan dari Manager:
+                        </p>
+                        <p className="mt-0.5">{order.inspection_notes}</p>
+                        </div>
+                    </div>
+                    )}
+
+                    {order.latest_trx_rejection && !isRefundRequested && (
+                    <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                        <p className="font-bold text-red-300">
+                            Laporan Barang Masuk Ditolak Manager (Tidak Sesuai Permintaan)
+                        </p>
+                        <p className="mt-0.5">Alasan: {order.latest_trx_rejection}</p>
+                        </div>
+                        {canCreateAndManage && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                            setRefundReason(order.latest_trx_rejection || '');
+                            setRefundModalOrder(order);
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold shrink-0 cursor-pointer"
+                        >
+                            Ajukan Refund & Buat Pesanan Baru
+                        </button>
+                        )}
                     </div>
                     )}
 
@@ -426,11 +709,12 @@ export default function RestockManager({
                     </p>
                     )}
 
-                    {order.status === 'Received' && (
+                    {['Received', 'Pesanan Diperiksa'].includes(order.status) && (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-800 text-xs">
                         <span className="text-emerald-400">
-                        Barang telah tiba (Received). Staff Gudang dapat mencatat Incoming
-                        Transaction menggunakan nomor PO ini agar stok bertambah setelah di-approve Manager.
+                        {order.status === 'Received'
+                            ? 'Foto dokumentasi kedatangan diterima. Manager dapat mengonfirmasi ke Staff untuk pemeriksaan fisik (Pesanan Diperiksa).'
+                            : 'Status Pesanan Diperiksa: Staff Gudang mengecek fisik barang dan membuat Laporan Barang Masuk untuk konfirmasi akhir Manager.'}
                         </span>
 
                         {order.supplier_rating && (
@@ -491,6 +775,8 @@ export default function RestockManager({
                     <select
                     name="supplier_id"
                     required
+                    value={selectedSupplierId}
+                    onChange={(e) => setSelectedSupplierId(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
                     >
                     <option value="">-- Pilih Mitra Supplier --</option>
@@ -593,6 +879,8 @@ export default function RestockManager({
                     <textarea
                     name="notes"
                     rows={2}
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
                     placeholder="Instruksi pengiriman atau prioritas restock"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
                     />
@@ -616,6 +904,205 @@ export default function RestockManager({
                 </div>
                 </form>
             </div>
+            </div>
+        )}
+
+        {arrivalModalOrder && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
+            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                <h3 className="font-bold text-white">Konfirmasi Kedatangan & Foto Dokumentasi</h3>
+                <button
+                    type="button"
+                    onClick={() => setArrivalModalOrder(null)}
+                    className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+                </div>
+
+                <p className="text-xs text-slate-400">
+                Nomor PO: <strong className="text-white">{arrivalModalOrder.po_number}</strong>.
+                Lampirkan foto bukti paket/barang tiba untuk dikonfirmasi ke Manager.
+                </p>
+
+                {arrivalState?.error && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300">
+                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                    <span>{arrivalState.error}</span>
+                </div>
+                )}
+
+                <form action={arrivalFormAction} className="space-y-4">
+                <input type="hidden" name="order_id" value={arrivalModalOrder.id} />
+
+                <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    Upload Foto Dokumentasi (JPG/PNG/WEBP)
+                    </label>
+                    <input
+                    type="file"
+                    name="arrival_photo_file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:text-xs file:font-semibold"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    Atau Masukkan Link / Path Foto Dokumentasi
+                    </label>
+                    <input
+                    type="text"
+                    name="arrival_photo_url"
+                    placeholder="https://... atau /uploads/restocks/foto-paket.jpg"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    Catatan Kedatangan (Opsional)
+                    </label>
+                    <textarea
+                    name="arrival_notes"
+                    rows={2}
+                    placeholder="Contoh: 2 kardus diterima di area bongkar muat gudang"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+                    />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                    <button
+                    type="button"
+                    onClick={() => setArrivalModalOrder(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer"
+                    >
+                    Batal
+                    </button>
+                    <button
+                    type="submit"
+                    disabled={isSubmittingArrival}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer"
+                    >
+                    {isSubmittingArrival ? 'Mengirim...' : 'Kirim Dokumentasi & Tandai Received'}
+                    </button>
+                </div>
+                </form>
+            </div>
+            </div>
+        )}
+
+        {inspectModalOrder && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
+            <form
+                onSubmit={handleRequestInspectionSubmit}
+                className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4"
+            >
+                <div className="flex items-center justify-between">
+                <h3 className="font-bold text-white">Instruksi Pemeriksaan ke Staff</h3>
+                <button
+                    type="button"
+                    onClick={() => setInspectModalOrder(null)}
+                    className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+                </div>
+
+                <p className="text-xs text-slate-400">
+                Nomor PO: <strong className="text-white">{inspectModalOrder.po_number}</strong>.
+                Status akan berubah menjadi <strong className="text-purple-300">Pesanan Diperiksa</strong>{' '}
+                agar Staff Gudang mengecek fisik barang dan membuat laporan masuk.
+                </p>
+
+                <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    Catatan Pemeriksaan untuk Staff
+                </label>
+                <textarea
+                    rows={3}
+                    value={inspectNotes}
+                    onChange={(e) => setInspectNotes(e.target.value)}
+                    placeholder="Contoh: Pastikan nomor seri komponen sesuai PO dan cek kondisi segel"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-purple-500"
+                />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                <button
+                    type="button"
+                    onClick={() => setInspectModalOrder(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer"
+                >
+                    Batal
+                </button>
+                <button
+                    type="submit"
+                    disabled={busyOrderId === inspectModalOrder.id}
+                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold cursor-pointer"
+                >
+                    Konfirmasi ke Staff
+                </button>
+                </div>
+            </form>
+            </div>
+        )}
+
+        {refundModalOrder && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
+            <form
+                onSubmit={handleRefundSubmit}
+                className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4"
+            >
+                <div className="flex items-center justify-between">
+                <h3 className="font-bold text-white">Ajukan Refund & Buat Pesanan Baru</h3>
+                <button
+                    type="button"
+                    onClick={() => setRefundModalOrder(null)}
+                    className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+                </div>
+
+                <p className="text-xs text-slate-400">
+                Pesanan <strong className="text-white">{refundModalOrder.po_number}</strong> tidak
+                sesuai permintaan. Setelah refund diajukan, Anda akan langsung diarahkan untuk
+                membuat <strong className="text-blue-400">Pesanan Baru (PO)</strong>.
+                </p>
+
+                <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    Alasan Ketidaksesuaian & Pengajuan Refund (Wajib)
+                </label>
+                <textarea
+                    rows={3}
+                    required
+                    value={refundReason}
+                    onChange={(e) => setRefundReason(e.target.value)}
+                    placeholder="Contoh: Spesifikasi komponen berbeda dan jumlah barang kurang dari PO"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-orange-500"
+                />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                <button
+                    type="button"
+                    onClick={() => setRefundModalOrder(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer"
+                >
+                    Batal
+                </button>
+                <button
+                    type="submit"
+                    disabled={busyOrderId === refundModalOrder.id}
+                    className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold cursor-pointer"
+                >
+                    Ajukan Refund & Lanjut Pesanan Baru
+                </button>
+                </div>
+            </form>
             </div>
         )}
 

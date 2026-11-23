@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useActionState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
     ArrowDownLeft,
     ArrowUpRight,
@@ -13,6 +14,7 @@ import {
     Truck,
     X,
     AlertCircle,
+    RotateCcw,
 } from 'lucide-react';
 import { formatDate } from '@/lib/formatters';
 import {
@@ -23,7 +25,8 @@ import {
     approveTransactionAction,
     rejectTransactionAction,
     markTransactionShippedAction,
-} from '@/actions/transactionActions';
+    } from '@/actions/transactionActions';
+import { managerRequestRefundAction } from '@/actions/restockActions';
 
 const initialFormState = { error: '', success: '' };
 
@@ -36,24 +39,38 @@ export default function TransactionManager({
     role,
     activeTab,
     preselectedProductId,
+    preselectedPoId,
     initialModalType,
     }) {
+    const router = useRouter();
     const canRecord = ['staff_gudang', 'admin'].includes(role);
     const canApprove = ['warehouse_manager', 'admin'].includes(role);
-    const isSupplier = role === 'supplier';
+
+    const initialPo = preselectedPoId
+        ? availablePos.find((po) => String(po.id) === String(preselectedPoId))
+        : null;
 
     const [incomingModalOpen, setIncomingModalOpen] = useState(
-        Boolean(canRecord && initialModalType === 'IN')
+        Boolean(canRecord && (initialModalType === 'IN' || initialPo))
     );
     const [outgoingModalOpen, setOutgoingModalOpen] = useState(
         Boolean(canRecord && initialModalType === 'OUT')
     );
 
-    const [selectedPoId, setSelectedPoId] = useState('');
-    const [selectedSupplierId, setSelectedSupplierId] = useState('');
-    const [incomingItems, setIncomingItems] = useState([
-        { productId: preselectedProductId || '', quantity: 1 },
-    ]);
+    const [selectedPoId, setSelectedPoId] = useState(
+        initialPo ? String(initialPo.id) : ''
+    );
+    const [selectedSupplierId, setSelectedSupplierId] = useState(
+        initialPo ? String(initialPo.supplier_id) : ''
+    );
+    const [incomingItems, setIncomingItems] = useState(
+        initialPo && initialPo.items.length > 0
+        ? initialPo.items.map((item) => ({
+            productId: String(item.product_id),
+            quantity: item.quantity,
+            }))
+        : [{ productId: preselectedProductId || '', quantity: 1 }]
+    );
 
     const [outgoingItems, setOutgoingItems] = useState([
         { productId: preselectedProductId || '', quantity: 1 },
@@ -174,6 +191,22 @@ export default function TransactionManager({
         }
     }
 
+    async function handleRefundAndReorder(trx) {
+        if (!trx.restock_order_id) {
+        router.push('/dashboard/restocks');
+        return;
+        }
+
+        setBusyId(trx.id);
+        setFeedback({ error: '', success: '' });
+        await managerRequestRefundAction(
+        trx.restock_order_id,
+        trx.rejection_reason || 'Pesanan tidak sesuai dengan permintaan'
+        );
+        setBusyId(null);
+        router.push(`/dashboard/restocks?refund_po_id=${trx.restock_order_id}`);
+    }
+
     async function handleShipped(trxId) {
         setBusyId(trxId);
         setFeedback({ error: '', success: '' });
@@ -210,6 +243,16 @@ export default function TransactionManager({
         return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
     }
 
+    function getStatusLabel(trx) {
+        if (trx.type === 'OUT' && trx.status === 'Approved') {
+        return 'Approved (Siap Packing)';
+        }
+        if (trx.type === 'OUT' && trx.status === 'Shipped') {
+        return 'Selesai Dikirim';
+        }
+        return trx.status;
+    }
+
     return (
         <div className="space-y-4">
         {canRecord && (
@@ -220,7 +263,7 @@ export default function TransactionManager({
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition cursor-pointer"
             >
                 <ArrowDownLeft className="w-4 h-4" />
-                <span>Catat Barang Masuk (IN)</span>
+                <span>Buat Laporan Barang Masuk (IN)</span>
             </button>
 
             <button
@@ -229,7 +272,7 @@ export default function TransactionManager({
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer"
             >
                 <ArrowUpRight className="w-4 h-4" />
-                <span>Catat Barang Keluar (OUT)</span>
+                <span>Ajukan Barang Keluar (OUT)</span>
             </button>
             </div>
         )}
@@ -341,7 +384,7 @@ export default function TransactionManager({
                                 trx.status
                             )}`}
                             >
-                            {trx.status}
+                            {getStatusLabel(trx)}
                             </span>
                         </td>
 
@@ -362,11 +405,11 @@ export default function TransactionManager({
                                     type="button"
                                     disabled={busyId === trx.id}
                                     onClick={() => handleApprove(trx.id)}
-                                    title="Approve Transaksi"
+                                    title="Konfirmasi / Approve Transaksi"
                                     className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold inline-flex items-center gap-1 cursor-pointer"
                                 >
                                     <CheckCircle2 className="w-3.5 h-3.5" />
-                                    <span>Approve</span>
+                                    <span>Konfirmasi</span>
                                 </button>
                                 <button
                                     type="button"
@@ -375,14 +418,30 @@ export default function TransactionManager({
                                     setRejectReason('');
                                     setRejectTrx(trx);
                                     }}
-                                    title="Reject Transaksi"
+                                    title="Tolak Transaksi"
                                     className="px-2.5 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 font-semibold inline-flex items-center gap-1 cursor-pointer"
                                 >
                                     <XCircle className="w-3.5 h-3.5" />
-                                    <span>Reject</span>
+                                    <span>Tolak</span>
                                 </button>
                                 </>
                             )}
+
+                            {canApprove &&
+                                trx.type === 'IN' &&
+                                trx.status === 'Rejected' &&
+                                trx.restock_order_id &&
+                                trx.po_status !== 'Refund Diajukan' && (
+                                <button
+                                    type="button"
+                                    disabled={busyId === trx.id}
+                                    onClick={() => handleRefundAndReorder(trx)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold inline-flex items-center gap-1 cursor-pointer"
+                                >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    <span>Ajukan Refund & Pesan Baru</span>
+                                </button>
+                                )}
 
                             {canRecord && trx.type === 'OUT' && trx.status === 'Approved' && (
                                 <button
@@ -392,7 +451,7 @@ export default function TransactionManager({
                                 className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold inline-flex items-center gap-1 cursor-pointer"
                                 >
                                 <Truck className="w-3.5 h-3.5" />
-                                <span>Tandai Shipped</span>
+                                <span>Kirim Barang (Selesai)</span>
                                 </button>
                             )}
 
@@ -437,7 +496,9 @@ export default function TransactionManager({
                     {detailTrx.transaction_number}
                     </h3>
                     <p className="text-xs text-slate-400">
-                    {detailTrx.type === 'IN' ? 'Transaksi Barang Masuk' : 'Transaksi Barang Keluar'}
+                    {detailTrx.type === 'IN'
+                        ? 'Laporan Pemeriksaan Barang Masuk'
+                        : 'Pengajuan & Pengiriman Barang Keluar'}
                     </p>
                 </div>
                 <button
@@ -458,7 +519,7 @@ export default function TransactionManager({
                 </div>
                 <div className="flex justify-between">
                     <span className="text-slate-400">Status</span>
-                    <span className="font-bold text-white">{detailTrx.status}</span>
+                    <span className="font-bold text-white">{getStatusLabel(detailTrx)}</span>
                 </div>
                 {detailTrx.po_number && (
                     <div className="flex justify-between">
@@ -489,8 +550,24 @@ export default function TransactionManager({
                 </div>
 
                 {detailTrx.rejection_reason && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300">
-                    <strong>Alasan Penolakan:</strong> {detailTrx.rejection_reason}
+                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300 space-y-2">
+                    <p>
+                    <strong>Alasan Penolakan (Tidak Sesuai):</strong> {detailTrx.rejection_reason}
+                    </p>
+                    {canApprove &&
+                    detailTrx.type === 'IN' &&
+                    detailTrx.restock_order_id &&
+                    detailTrx.po_status !== 'Refund Diajukan' && (
+                        <button
+                        type="button"
+                        disabled={busyId === detailTrx.id}
+                        onClick={() => handleRefundAndReorder(detailTrx)}
+                        className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Ajukan Refund & Buat Pesanan Baru</span>
+                        </button>
+                    )}
                 </div>
                 )}
 
@@ -513,7 +590,7 @@ export default function TransactionManager({
 
                 {detailTrx.notes && (
                 <p className="text-xs text-slate-400">
-                    <strong className="text-slate-300">Catatan:</strong> {detailTrx.notes}
+                    <strong className="text-slate-300">Catatan / Laporan:</strong> {detailTrx.notes}
                 </p>
                 )}
             </div>
@@ -525,9 +602,11 @@ export default function TransactionManager({
             <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl my-8">
                 <div className="flex items-center justify-between mb-5">
                 <div>
-                    <h2 className="text-lg font-bold text-white">Catat Barang Masuk (Incoming)</h2>
+                    <h2 className="text-lg font-bold text-white">
+                    Buat Laporan Barang Masuk (Incoming)
+                    </h2>
                     <p className="text-xs text-slate-400">
-                    Pilih Nomor PO berstatus Received untuk pengisian otomatis, atau isi manual
+                    Pilih Nomor PO berstatus Pesanan Diperiksa / Received untuk melaporkan hasil cek fisik ke Manager
                     </p>
                 </div>
                 <button
@@ -557,7 +636,7 @@ export default function TransactionManager({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                        Tanggal Penerimaan
+                        Tanggal Pemeriksaan & Penerimaan
                     </label>
                     <input
                         type="date"
@@ -570,7 +649,7 @@ export default function TransactionManager({
 
                     <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                        Nomor PO (Opsional - Status Received)
+                        Nomor PO (Pesanan Diperiksa / Received)
                     </label>
                     <select
                         name="restock_order_id"
@@ -581,7 +660,7 @@ export default function TransactionManager({
                         <option value="">-- Tanpa PO (Penerimaan Langsung) --</option>
                         {availablePos.map((po) => (
                         <option key={po.id} value={po.id}>
-                            {po.po_number} - {po.supplier_company || po.supplier_name}
+                            {po.po_number} ({po.status}) - {po.supplier_company || po.supplier_name}
                         </option>
                         ))}
                     </select>
@@ -611,7 +690,7 @@ export default function TransactionManager({
                 <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
                     <label className="text-xs font-medium text-slate-400">
-                        Daftar Produk Diterima
+                        Hasil Cek Fisik Produk Diterima
                     </label>
                     <button
                         type="button"
@@ -681,12 +760,12 @@ export default function TransactionManager({
 
                 <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                    Catatan Penerimaan
+                    Laporan Hasil Pemeriksaan Barang
                     </label>
                     <textarea
                     name="notes"
                     rows={2}
-                    placeholder="Nomor surat jalan atau kondisi fisik kemasan"
+                    placeholder="Tuliskan hasil pengecekan fisik, nomor surat jalan, dan kesesuaian jumlah"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
@@ -704,7 +783,7 @@ export default function TransactionManager({
                     disabled={isCreatingIn}
                     className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer"
                     >
-                    {isCreatingIn ? 'Menyimpan...' : 'Simpan Barang Masuk'}
+                    {isCreatingIn ? 'Mengirim Laporan...' : 'Kirim Laporan ke Manager'}
                     </button>
                 </div>
                 </form>
@@ -717,9 +796,9 @@ export default function TransactionManager({
             <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl my-8">
                 <div className="flex items-center justify-between mb-5">
                 <div>
-                    <h2 className="text-lg font-bold text-white">Catat Barang Keluar (Outgoing)</h2>
+                    <h2 className="text-lg font-bold text-white">Ajukan Barang Keluar (Outgoing)</h2>
                     <p className="text-xs text-slate-400">
-                    Quantity tidak boleh melebihi stok komponen yang tersedia
+                    Stok akan berkurang saat barang selesai di-packing dan dikirim setelah konfirmasi Manager
                     </p>
                 </div>
                 <button
@@ -749,7 +828,7 @@ export default function TransactionManager({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                        Tanggal Pengiriman
+                        Tanggal Pengajuan
                     </label>
                     <input
                         type="date"
@@ -847,12 +926,12 @@ export default function TransactionManager({
 
                 <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                    Catatan Pengiriman
+                    Catatan Pengeluaran
                     </label>
                     <textarea
                     name="notes"
                     rows={2}
-                    placeholder="Keterangan ekspedisi atau nomor invoice tujuan"
+                    placeholder="Keterangan permintaan atau nomor invoice tujuan"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
@@ -870,7 +949,7 @@ export default function TransactionManager({
                     disabled={isCreatingOut}
                     className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold cursor-pointer"
                     >
-                    {isCreatingOut ? 'Menyimpan...' : 'Simpan Barang Keluar'}
+                    {isCreatingOut ? 'Mengajukan...' : 'Ajukan ke Manager'}
                     </button>
                 </div>
                 </form>
@@ -887,7 +966,7 @@ export default function TransactionManager({
                     Edit Transaksi Pending ({editTrx.transaction_number})
                     </h2>
                     <p className="text-xs text-slate-400">
-                    Hanya produk, quantity, dan catatan yang dapat diubah sebelum di-approve
+                    Hanya produk, quantity, dan catatan yang dapat diubah sebelum dikonfirmasi Manager
                     </p>
                 </div>
                 <button
@@ -1041,19 +1120,20 @@ export default function TransactionManager({
                 <strong className="text-white font-mono">
                     {rejectTrx.transaction_number}
                 </strong>
-                . Alasan penolakan wajib diisi.
+                . Jika pesanan tidak sesuai permintaan, Anda dapat mengajukan refund dan membuat
+                pesanan baru setelah menolak.
                 </p>
 
                 <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                    Alasan Penolakan (Wajib)
+                    Alasan Ketidaksesuaian / Penolakan (Wajib)
                 </label>
                 <textarea
                     rows={3}
                     required
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="Contoh: Selisih jumlah fisik barang dengan dokumen pengiriman"
+                    placeholder="Contoh: Jumlah atau tipe komponen tidak sesuai dengan PO"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-red-500"
                 />
                 </div>

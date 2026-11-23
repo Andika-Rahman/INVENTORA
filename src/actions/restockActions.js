@@ -1,5 +1,7 @@
 'use server';
 
+import { mkdir, writeFile } from 'fs/promises';
+import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import pool, { query } from '@/lib/db';
@@ -140,13 +142,10 @@ export async function supplierRespondRestockAction(orderId, decision, statusNote
     };
 }
 
-export async function advanceRestockStatusAction(orderId, nextStatus) {
+export async function supplierShipRestockAction(orderId) {
     const session = await getSession();
-    if (
-        !session ||
-        !['admin', 'warehouse_manager', 'staff_gudang', 'supplier'].includes(session.role)
-    ) {
-        return { error: 'Anda tidak memiliki izin memperbarui status pengiriman PO.' };
+    if (!session || session.role !== 'supplier') {
+        return { error: 'Hanya Supplier yang dapat menandai pengiriman barang.' };
     }
 
     const currentRes = await query(
@@ -154,36 +153,164 @@ export async function advanceRestockStatusAction(orderId, nextStatus) {
         [Number(orderId)]
     );
 
-    if (currentRes.rows.length === 0) {
+    if (currentRes.rows.length === 0 || currentRes.rows[0].supplier_id !== session.id) {
         return { error: 'Restock Order tidak ditemukan.' };
     }
 
-    const order = currentRes.rows[0];
-
-    if (session.role === 'supplier' && order.supplier_id !== session.id) {
-        return { error: 'Anda tidak memiliki akses ke pesanan restock milik supplier lain.' };
-    }
-
-    const canSetInTransit = session.role === 'supplier';
-    const canSetReceived = ['admin', 'warehouse_manager', 'staff_gudang'].includes(session.role);
-
-    const isValidTransition =
-        (order.status === 'Confirmed' && nextStatus === 'In Transit' && canSetInTransit) ||
-        (order.status === 'In Transit' && nextStatus === 'Received' && canSetReceived);
-
-    if (!isValidTransition) {
-        return { error: `Perubahan status dari ${order.status} ke ${nextStatus} tidak diizinkan.` };
+    if (currentRes.rows[0].status !== 'Confirmed') {
+        return { error: 'Hanya pesanan berstatus Confirmed yang dapat dikirim.' };
     }
 
     await query(
-        'UPDATE restock_orders SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-        [nextStatus, Number(orderId)]
+        "UPDATE restock_orders SET status = 'In Transit', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+        [Number(orderId)]
+    );
+
+    revalidatePath('/dashboard/restocks');
+    revalidatePath('/dashboard');
+    return { success: 'Status pesanan diperbarui menjadi In Transit.' };
+}
+
+export async function confirmArrivalWithPhotoAction(prevState, formData) {
+    const session = await getSession();
+    if (!session || !['admin', 'warehouse_manager', 'staff_gudang'].includes(session.role)) {
+        return { error: 'Anda tidak memiliki izin mengonfirmasi kedatangan barang.' };
+    }
+
+    const orderId = Number(formData.get('order_id'));
+    const arrivalNotes = String(formData.get('arrival_notes') || '').trim();
+    const photoUrlInput = String(formData.get('arrival_photo_url') || '').trim();
+    const photoFile = formData.get('arrival_photo_file');
+
+    if (!orderId) {
+        return { error: 'ID Restock Order tidak valid.' };
+    }
+
+    const orderRes = await query(
+        'SELECT id, status FROM restock_orders WHERE id = $1 LIMIT 1',
+        [orderId]
+    );
+
+    if (orderRes.rows.length === 0 || orderRes.rows[0].status !== 'In Transit') {
+        return { error: 'Hanya pesanan berstatus In Transit yang dapat dikonfirmasi tiba.' };
+    }
+
+    let savedPhotoUrl = photoUrlInput;
+
+    if (photoFile && typeof photoFile === 'object' && photoFile.size > 0) {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(photoFile.type)) {
+        return { error: 'Format foto dokumentasi harus JPG, PNG, atau WEBP.' };
+        }
+
+        const bytes = await photoFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const ext = photoFile.name.split('.').pop() || 'jpg';
+        const fileName = `arrival-${orderId}-${Date.now()}.${ext}`;
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'restocks');
+
+        await mkdir(uploadDir, { recursive: true });
+        await writeFile(path.join(uploadDir, fileName), buffer);
+        savedPhotoUrl = `/uploads/restocks/${fileName}`;
+    }
+
+    if (!savedPhotoUrl) {
+        return { error: 'Foto dokumentasi kedatangan barang wajib dilampirkan untuk dikirim ke Manager.' };
+    }
+
+    await query(
+        `UPDATE restock_orders
+        SET status = 'Received',
+            arrival_photo_url = $1,
+            status_notes = COALESCE(NULLIF($2, ''), status_notes),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3`,
+        [savedPhotoUrl, arrivalNotes, orderId]
     );
 
     revalidatePath('/dashboard/restocks');
     revalidatePath('/dashboard/transactions');
     revalidatePath('/dashboard');
-    return { success: `Status Restock Order diperbarui menjadi ${nextStatus}.` };
+    return {
+        success: 'Pesanan ditandai tiba (Received) dan foto dokumentasi telah dikirim ke Manager.',
+    };
+}
+
+export async function managerRequestInspectionAction(orderId, inspectionNotes) {
+    const session = await getSession();
+    if (!session || !['admin', 'warehouse_manager'].includes(session.role)) {
+        return { error: 'Hanya Warehouse Manager atau Admin yang dapat menginstruksikan pemeriksaan.' };
+    }
+
+    const orderRes = await query(
+        'SELECT id, status FROM restock_orders WHERE id = $1 LIMIT 1',
+        [Number(orderId)]
+    );
+
+    if (orderRes.rows.length === 0 || orderRes.rows[0].status !== 'Received') {
+        return { error: 'Hanya pesanan berstatus Received yang dapat diteruskan ke pemeriksaan Staff.' };
+    }
+
+    const trimmedNotes = String(inspectionNotes || '').trim();
+
+    await query(
+        `UPDATE restock_orders
+        SET status = 'Pesanan Diperiksa',
+            inspection_notes = $1,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2`,
+        [
+        trimmedNotes || 'Foto dokumentasi diterima. Silakan cek kesesuaian fisik barang dan buat laporan.',
+        Number(orderId),
+        ]
+    );
+
+    revalidatePath('/dashboard/restocks');
+    revalidatePath('/dashboard/transactions');
+    revalidatePath('/dashboard');
+    return {
+        success: 'Status diperbarui menjadi Pesanan Diperiksa dan instruksi telah diteruskan ke Staff Gudang.',
+    };
+}
+
+export async function managerRequestRefundAction(orderId, refundReason) {
+    const session = await getSession();
+    if (!session || !['admin', 'warehouse_manager'].includes(session.role)) {
+        return { error: 'Hanya Warehouse Manager atau Admin yang dapat mengajukan refund.' };
+    }
+
+    const trimmedReason = String(refundReason || '').trim();
+    if (!trimmedReason) {
+        return { error: 'Alasan pengajuan refund wajib diisi.' };
+    }
+
+    const orderRes = await query(
+        'SELECT id, status FROM restock_orders WHERE id = $1 LIMIT 1',
+        [Number(orderId)]
+    );
+
+    if (
+        orderRes.rows.length === 0 ||
+        !['Received', 'Pesanan Diperiksa'].includes(orderRes.rows[0].status)
+    ) {
+        return { error: 'Pengajuan refund hanya dapat dilakukan untuk pesanan yang telah tiba / diperiksa.' };
+    }
+
+    await query(
+        `UPDATE restock_orders
+        SET status = 'Refund Diajukan',
+            refund_reason = $1,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2`,
+        [trimmedReason, Number(orderId)]
+    );
+
+    revalidatePath('/dashboard/restocks');
+    revalidatePath('/dashboard/transactions');
+    revalidatePath('/dashboard');
+    return {
+        success: 'Pengajuan refund berhasil dicatat. Silakan buat pesanan restock baru.',
+    };
 }
 
 export async function rateSupplierRestockAction(orderId, rating, feedback) {
@@ -204,8 +331,11 @@ export async function rateSupplierRestockAction(orderId, rating, feedback) {
         [Number(orderId)]
     );
 
-    if (orderRes.rows.length === 0 || orderRes.rows[0].status !== 'Received') {
-        return { error: 'Rating hanya dapat diberikan setelah Restock Order berstatus Received.' };
+    if (
+        orderRes.rows.length === 0 ||
+        !['Received', 'Pesanan Diperiksa'].includes(orderRes.rows[0].status)
+    ) {
+        return { error: 'Rating hanya dapat diberikan setelah pesanan diterima.' };
     }
 
     await query(
