@@ -258,3 +258,115 @@ html.dark .text-blue-400,
 html.dark .text-blue-300 {
   color: #f87171;
 }
+
+@keyframes inventoraPixarRoll {
+  0% {
+    transform: translateX(-220px) rotate(-540deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  46% {
+    transform: translateX(0px) rotate(0deg) scale(1, 1);
+    animation-timing-function: ease-out;
+  }
+  56% {
+    transform: translateX(0px) translateY(5px) scale(1.18, 0.82);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  72% {
+    transform: translateX(0px) translateY(-34px) scale(0.92, 1.1) rotate(6deg);
+    animation-timing-function: cubic-bezier(0.55, 0.05, 0.68, 0.19);
+  }
+  85% {
+    transform: translateX(0px) translateY(3px) scale(1.12, 0.88) rotate(0deg);
+    animation-timing-function: ease-out;
+  }
+  100% {
+    transform: translateX(0px) translateY(0px) scale(1, 1) rotate(0deg);
+  }
+}
+
+@keyframes inventoraPixarShadow {
+  0% {
+    transform: translateX(-220px) scale(0.85);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.45;
+  }
+  46% {
+    transform: translateX(0px) scale(1);
+    opacity: 0.45;
+  }
+  56% {
+    transform: translateX(0px) scale(1.22);
+    opacity: 0.6;
+  }
+  72% {
+    transform: translateX(0px) scale(0.45);
+    opacity: 0.15;
+  }
+  85% {
+    transform: translateX(0px) scale(1.15);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateX(0px) scale(1);
+    opacity: 0.4;
+  }
+}
+
+@keyframes inventoraWordmarkReveal {
+  0%, 48% {
+    opacity: 0;
+    transform: translateX(-24px);
+    clip-path: inset(0 100% 0 0);
+  }
+  82%, 100% {
+    opacity: 1;
+    transform: translateX(0);
+    clip-path: inset(0 0% 0 0);
+  }
+}
+
+@keyframes inventoraSubtextReveal {
+  0%, 68% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  92%, 100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes inventoraProgress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+.animate-inventora-pixar-roll {
+  animation: inventoraPixarRoll 2.1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.animate-inventora-pixar-shadow {
+  animation: inventoraPixarShadow 2.1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.animate-inventora-wordmark {
+  animation: inventoraWordmarkReveal 2.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-inventora-subtext {
+  animation: inventoraSubtextReveal 2.1s ease-out forwards;
+}
+
+.animate-inventora-progress {
+  animation: inventoraProgress 2.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
