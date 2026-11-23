@@ -96,6 +96,58 @@ export async function registerSupplierAction(prevState, formData) {
     };
 }
 
+export async function resetPasswordAction(prevState, formData) {
+    const email = String(formData.get('email') || '').trim().toLowerCase();
+    const phone = String(formData.get('phone') || '').trim();
+    const newPassword = String(formData.get('new_password') || '');
+    const confirmPassword = String(formData.get('confirm_password') || '');
+
+    if (!email || !phone || !newPassword || !confirmPassword) {
+        return { error: 'Semua kolom verifikasi dan kata sandi baru wajib diisi.' };
+    }
+
+    if (newPassword.length < 6) {
+        return { error: 'Kata sandi baru minimal harus 6 karakter.' };
+    }
+
+    if (newPassword !== confirmPassword) {
+        return { error: 'Konfirmasi kata sandi baru tidak cocok.' };
+    }
+
+    const userRes = await query(
+        'SELECT id, role, phone FROM users WHERE LOWER(email) = $1 LIMIT 1',
+        [email]
+    );
+
+    if (userRes.rows.length === 0) {
+        return { error: 'Akun supplier dengan email tersebut tidak ditemukan.' };
+    }
+
+    const user = userRes.rows[0];
+
+    if (user.role !== 'supplier') {
+        return {
+        error: 'Fitur ubah kata sandi mandiri hanya tersedia untuk akun mitra Supplier.',
+        };
+    }
+
+    const normalizedDbPhone = String(user.phone || '').replace(/[\s-]/g, '');
+    const normalizedInputPhone = phone.replace(/[\s-]/g, '');
+
+    if (!normalizedDbPhone || normalizedDbPhone !== normalizedInputPhone) {
+        return { error: 'Nomor telepon tidak cocok dengan data yang terdaftar pada akun supplier ini.' };
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    await query('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, user.id]);
+
+    return {
+        success:
+        'Kata sandi akun Supplier berhasil diperbarui! Silakan masuk kembali menggunakan kata sandi baru Anda.',
+    };
+}
+
 export async function logoutAction() {
     await clearSessionCookie();
     redirect('/login');

@@ -84,6 +84,15 @@ export default function LoginPage() {
                 </Link>
             </p>
             </div>
+
+            <div className="flex justify-end">
+                <Link
+                    href="/forgot-password"
+                    className="text-xs font-medium text-red-400 hover:text-red-300 transition"
+                >
+                    Lupa kata sandi?
+                </Link>
+            </div>
         </div>
         </div>
     );
