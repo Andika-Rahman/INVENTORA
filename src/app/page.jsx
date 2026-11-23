@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { getSession } from '@/lib/auth';
 import ThemeToggle from '@/components/theme/ThemeToggle';
+import SplashScreen from '@/components/ui/SplashScreen';
 
 export default async function HomePage() {
     const session = await getSession();
@@ -81,6 +82,8 @@ export default async function HomePage() {
 
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-zinc-950 dark:text-zinc-100 flex flex-col transition-colors">
+        <SplashScreen />
+
         <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-950/85 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800/80">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-3">
