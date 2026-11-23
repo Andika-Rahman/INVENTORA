@@ -142,12 +142,15 @@ export async function supplierRespondRestockAction(orderId, decision, statusNote
 
 export async function advanceRestockStatusAction(orderId, nextStatus) {
     const session = await getSession();
-    if (!session || !['admin', 'warehouse_manager', 'staff_gudang'].includes(session.role)) {
+    if (
+        !session ||
+        !['admin', 'warehouse_manager', 'staff_gudang', 'supplier'].includes(session.role)
+    ) {
         return { error: 'Anda tidak memiliki izin memperbarui status pengiriman PO.' };
     }
 
     const currentRes = await query(
-        'SELECT id, status FROM restock_orders WHERE id = $1 LIMIT 1',
+        'SELECT id, supplier_id, status FROM restock_orders WHERE id = $1 LIMIT 1',
         [Number(orderId)]
     );
 
@@ -155,16 +158,21 @@ export async function advanceRestockStatusAction(orderId, nextStatus) {
         return { error: 'Restock Order tidak ditemukan.' };
     }
 
-    const currentStatus = currentRes.rows[0].status;
-    const canSetInTransit = ['admin', 'warehouse_manager'].includes(session.role);
+    const order = currentRes.rows[0];
+
+    if (session.role === 'supplier' && order.supplier_id !== session.id) {
+        return { error: 'Anda tidak memiliki akses ke pesanan restock milik supplier lain.' };
+    }
+
+    const canSetInTransit = session.role === 'supplier';
     const canSetReceived = ['admin', 'warehouse_manager', 'staff_gudang'].includes(session.role);
 
     const isValidTransition =
-        (currentStatus === 'Confirmed' && nextStatus === 'In Transit' && canSetInTransit) ||
-        (currentStatus === 'In Transit' && nextStatus === 'Received' && canSetReceived);
+        (order.status === 'Confirmed' && nextStatus === 'In Transit' && canSetInTransit) ||
+        (order.status === 'In Transit' && nextStatus === 'Received' && canSetReceived);
 
     if (!isValidTransition) {
-        return { error: `Perubahan status dari ${currentStatus} ke ${nextStatus} tidak diizinkan.` };
+        return { error: `Perubahan status dari ${order.status} ke ${nextStatus} tidak diizinkan.` };
     }
 
     await query(

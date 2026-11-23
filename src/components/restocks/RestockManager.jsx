@@ -164,7 +164,7 @@ export default function RestockManager({
             <h1 className="text-2xl font-bold text-white">Restock Management (Purchase Order)</h1>
             <p className="text-sm text-slate-400 mt-1">
                 {isSupplier
-                ? 'Konfirmasi ketersediaan stok dan pantau progres pengiriman pesanan restock'
+                ? 'Konfirmasi ketersediaan stok, tandai pengiriman (In Transit), dan pantau progres pesanan restock'
                 : isStaffGudang
                 ? 'Pantau pengiriman pesanan restock dari supplier dan konfirmasi penerimaan barang (Received)'
                 : 'Pengajuan restock komponen ke supplier dan pemantauan status pengiriman PO'}
@@ -318,7 +318,7 @@ export default function RestockManager({
                         </>
                         )}
 
-                        {canCreateAndManage && order.status === 'Confirmed' && (
+                        {isSupplier && order.status === 'Confirmed' && (
                         <button
                             type="button"
                             disabled={busyOrderId === order.id}
@@ -326,7 +326,7 @@ export default function RestockManager({
                             className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                         >
                             <Truck className="w-4 h-4" />
-                            <span>Tandai In Transit</span>
+                            <span>Kirim Barang (In Transit)</span>
                         </button>
                         )}
 
@@ -430,7 +430,7 @@ export default function RestockManager({
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-800 text-xs">
                         <span className="text-emerald-400">
                         Barang telah tiba (Received). Staff Gudang dapat mencatat Incoming
-                        Transaction menggunakan nomor PO ini untuk memperbarui stok gudang.
+                        Transaction menggunakan nomor PO ini agar stok bertambah setelah di-approve Manager.
                         </span>
 
                         {order.supplier_rating && (
