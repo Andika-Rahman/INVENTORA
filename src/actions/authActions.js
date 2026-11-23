@@ -52,8 +52,7 @@ export async function loginAction(prevState, formData) {
     redirect('/dashboard');
 }
 
-export async function registerAccountAction(prevState, formData) {
-    const accountType = String(formData.get('account_type') || 'staff_gudang').trim();
+export async function registerSupplierAction(prevState, formData) {
     const name = String(formData.get('name') || '').trim();
     const companyName = String(formData.get('company_name') || '').trim();
     const email = String(formData.get('email') || '').trim().toLowerCase();
@@ -62,16 +61,8 @@ export async function registerAccountAction(prevState, formData) {
     const password = String(formData.get('password') || '');
     const confirmPassword = String(formData.get('confirm_password') || '');
 
-    if (!['staff_gudang', 'supplier'].includes(accountType)) {
-        return { error: 'Jenis akun pendaftaran tidak valid.' };
-    }
-
-    if (!name || !email || !password) {
-        return { error: 'Nama lengkap, email, dan password wajib diisi.' };
-    }
-
-    if (accountType === 'supplier' && (!companyName || !phone || !address)) {
-        return { error: 'Semua field pendaftaran mitra supplier wajib diisi lengkap.' };
+    if (!name || !companyName || !email || !phone || !address || !password) {
+        return { error: 'Semua field pendaftaran supplier wajib diisi.' };
     }
 
     if (password.length < 6) {
@@ -93,19 +84,6 @@ export async function registerAccountAction(prevState, formData) {
 
     const hashedPassword = await hashPassword(password);
 
-    if (accountType === 'staff_gudang') {
-        await query(
-        `INSERT INTO users (name, email, password, role, status, company_name, phone, address)
-        VALUES ($1, $2, $3, 'staff_gudang', 'Approved', 'INVENTORA Warehouse HQ', $4, NULL)`,
-        [name, email, hashedPassword, phone || null]
-        );
-
-        return {
-        success:
-            'Registrasi akun Staff Gudang berhasil! Akun Anda sudah aktif dan dapat langsung digunakan untuk masuk ke sistem.',
-        };
-    }
-
     await query(
         `INSERT INTO users (name, email, password, role, status, company_name, phone, address)
         VALUES ($1, $2, $3, 'supplier', 'Pending', $4, $5, $6)`,
@@ -116,11 +94,6 @@ export async function registerAccountAction(prevState, formData) {
         success:
         'Registrasi Supplier berhasil! Akun Anda berstatus Pending dan menunggu persetujuan Admin sebelum dapat mengakses dashboard.',
     };
-}
-
-export async function registerSupplierAction(prevState, formData) {
-    formData.set('account_type', 'supplier');
-    return registerAccountAction(prevState, formData);
 }
 
 export async function logoutAction() {
