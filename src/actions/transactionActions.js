@@ -5,8 +5,6 @@ import { getSession } from '@/lib/auth';
 import pool, { query } from '@/lib/db';
 import { generateDocumentNumber } from '@/lib/formatters';
 
-const LARGE_TRANSACTION_THRESHOLD = 10;
-
 function parseTransactionItems(productIdsRaw, quantitiesRaw) {
     const productIds = productIdsRaw.map((v) => Number(v));
     const quantities = quantitiesRaw.map((v) => Number(v));
@@ -97,11 +95,6 @@ export async function createIncomingTransactionAction(prevState, formData) {
         }
     }
 
-    const totalQuantity = parsedItems.items.reduce((acc, item) => acc + item.quantity, 0);
-    const isLargeTransaction = totalQuantity > LARGE_TRANSACTION_THRESHOLD;
-    const initialStatus = isLargeTransaction ? 'Pending' : 'Approved';
-    const approvedBy = isLargeTransaction ? null : session.id;
-
     const trxNumber = generateDocumentNumber('TRX-IN');
     const client = await pool.connect();
 
@@ -111,8 +104,8 @@ export async function createIncomingTransactionAction(prevState, formData) {
         const trxRes = await client.query(
         `INSERT INTO transactions (
             transaction_number, type, transaction_date, restock_order_id,
-            supplier_id, notes, status, created_by, approved_by
-        ) VALUES ($1, 'IN', $2, $3, $4, $5, $6, $7, $8)
+            supplier_id, notes, status, created_by
+        ) VALUES ($1, 'IN', $2, $3, $4, $5, 'Pending', $6)
         RETURNING id`,
         [
             trxNumber,
@@ -120,9 +113,7 @@ export async function createIncomingTransactionAction(prevState, formData) {
             restockOrderId,
             supplierId,
             notes || null,
-            initialStatus,
             session.id,
-            approvedBy,
         ]
         );
 
@@ -133,13 +124,6 @@ export async function createIncomingTransactionAction(prevState, formData) {
             'INSERT INTO transaction_items (transaction_id, product_id, quantity) VALUES ($1, $2, $3)',
             [transactionId, item.productId, item.quantity]
         );
-
-        if (!isLargeTransaction) {
-            await client.query(
-            'UPDATE products SET stock = stock + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-            [item.quantity, item.productId]
-            );
-        }
         }
 
         await client.query('COMMIT');
@@ -154,14 +138,8 @@ export async function createIncomingTransactionAction(prevState, formData) {
     revalidatePath('/dashboard/products');
     revalidatePath('/dashboard');
 
-    if (isLargeTransaction) {
-        return {
-        success: `Transaksi besar ${trxNumber} (${totalQuantity} unit) berhasil dicatat dan menunggu approval Manager.`,
-        };
-    }
-
     return {
-        success: `Transaksi rutin ${trxNumber} (${totalQuantity} unit) langsung diproses dan stok gudang telah diperbarui.`,
+        success: `Transaksi barang masuk ${trxNumber} berhasil dicatat (status Pending) dan menunggu approval Manager sebelum stok bertambah.`,
     };
 }
 
@@ -186,11 +164,6 @@ export async function createOutgoingTransactionAction(prevState, formData) {
     if (parsedItems.error) {
         return { error: parsedItems.error };
     }
-
-    const totalQuantity = parsedItems.items.reduce((acc, item) => acc + item.quantity, 0);
-    const isLargeTransaction = totalQuantity > LARGE_TRANSACTION_THRESHOLD;
-    const initialStatus = isLargeTransaction ? 'Pending' : 'Approved';
-    const approvedBy = isLargeTransaction ? null : session.id;
 
     const trxNumber = generateDocumentNumber('TRX-OUT');
     const client = await pool.connect();
@@ -221,17 +194,15 @@ export async function createOutgoingTransactionAction(prevState, formData) {
         const trxRes = await client.query(
         `INSERT INTO transactions (
             transaction_number, type, transaction_date, customer_name,
-            notes, status, created_by, approved_by
-        ) VALUES ($1, 'OUT', $2, $3, $4, $5, $6, $7)
+            notes, status, created_by
+        ) VALUES ($1, 'OUT', $2, $3, $4, 'Pending', $5)
         RETURNING id`,
         [
             trxNumber,
             transactionDate,
             customerName,
             notes || null,
-            initialStatus,
             session.id,
-            approvedBy,
         ]
         );
 
@@ -242,13 +213,6 @@ export async function createOutgoingTransactionAction(prevState, formData) {
             'INSERT INTO transaction_items (transaction_id, product_id, quantity) VALUES ($1, $2, $3)',
             [transactionId, item.productId, item.quantity]
         );
-
-        if (!isLargeTransaction) {
-            await client.query(
-            'UPDATE products SET stock = stock - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-            [item.quantity, item.productId]
-            );
-        }
         }
 
         await client.query('COMMIT');
@@ -263,14 +227,8 @@ export async function createOutgoingTransactionAction(prevState, formData) {
     revalidatePath('/dashboard/products');
     revalidatePath('/dashboard');
 
-    if (isLargeTransaction) {
-        return {
-        success: `Transaksi keluar besar ${trxNumber} (${totalQuantity} unit) dicatat dan menunggu approval Manager.`,
-        };
-    }
-
     return {
-        success: `Transaksi keluar rutin ${trxNumber} (${totalQuantity} unit) langsung diproses dan stok gudang telah diperbarui.`,
+        success: `Transaksi barang keluar ${trxNumber} berhasil dicatat (status Pending) dan menunggu approval Manager.`,
     };
 }
 
