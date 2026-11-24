@@ -14,16 +14,31 @@ export default async function SuppliersPage() {
     }
 
     const suppliersRes = await query(`
-        SELECT id, name, email, status, company_name, phone, address, created_at
-        FROM users
-        WHERE role = 'supplier'
+        SELECT
+        u.id,
+        u.name,
+        u.email,
+        u.status,
+        u.company_name,
+        u.phone,
+        u.address,
+        u.termination_reason,
+        u.created_at,
+        COUNT(ro.id) FILTER (
+            WHERE ro.status IN ('Pending', 'Confirmed', 'In Transit', 'Pesanan Diperiksa')
+        )::int AS active_deliveries
+        FROM users u
+        LEFT JOIN restock_orders ro ON ro.supplier_id = u.id
+        WHERE u.role = 'supplier'
+        GROUP BY u.id
         ORDER BY
-        CASE status
+        CASE u.status
             WHEN 'Pending' THEN 1
             WHEN 'Approved' THEN 2
-            ELSE 3
+            WHEN 'Rejected' THEN 3
+            ELSE 4
         END,
-        created_at DESC
+        u.created_at DESC
     `);
 
     return <SupplierManager suppliers={suppliersRes.rows} />;
