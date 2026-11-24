@@ -1,35 +1,37 @@
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
-import { query } from "@/lib/db";
-import Sidebar from "@/components/layout/Sidebar";
-import Navbar from "@/components/layout/Navbar";
+import { redirect } from 'next/navigation';
+import { getSession } from '@/lib/auth';
+import { query } from '@/lib/db';
+import Sidebar from '@/components/layout/Sidebar';
+import Navbar from '@/components/layout/Navbar';
 
 export default async function DashboardLayout({ children }) {
     const session = await getSession();
-
     if (!session) {
-        redirect("/login");
+        redirect('/login');
     }
 
-    let pendingSuppliersCount = 0;
-    if (session.role === "admin") {
-        const res = await query(
-        "SELECT COUNT(*)::int AS total FROM users WHERE role = 'supplier' AND status = 'Pending'",
-        );
-        pendingSuppliersCount = res.rows[0]?.total || 0;
+    const userRes = await query(
+        'SELECT id, name, email, role, status, company_name, avatar_url FROM users WHERE id = $1 LIMIT 1',
+        [session.id]
+    );
+
+    if (userRes.rows.length === 0 || userRes.rows[0].status === 'Terminated') {
+        redirect('/login');
+    }
+
+    const currentUser = userRes.rows[0];
+
+    if (currentUser.role === 'supplier' && currentUser.status !== 'Approved') {
+        redirect('/supplier-status');
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100">
-        <Sidebar
-            role={session.role}
-            pendingSuppliersCount={pendingSuppliersCount}
-        />
-        <div className="lg:pl-64 flex flex-col min-h-screen">
-            <Navbar user={session} />
-            <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-            {children}
-            </main>
+        <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex transition-colors">
+        <Sidebar session={currentUser} />
+
+        <div className="flex-1 flex flex-col min-w-0">
+            <Navbar session={currentUser} />
+            <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
         </div>
         </div>
     );
