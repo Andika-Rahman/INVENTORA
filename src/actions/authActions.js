@@ -10,6 +10,14 @@ import {
     verifyPassword,
 } from '@/lib/auth';
 
+function normalizePhone(rawPhone) {
+    const digits = String(rawPhone || '').replace(/\D/g, '');
+    if (digits.startsWith('62')) {
+        return '0' + digits.slice(2);
+    }
+    return digits;
+}
+
 export async function loginAction(prevState, formData) {
     const email = String(formData.get('email') || '').trim().toLowerCase();
     const password = String(formData.get('password') || '');
@@ -19,7 +27,7 @@ export async function loginAction(prevState, formData) {
     }
 
     const result = await query(
-        'SELECT id, name, email, password, role, status, company_name FROM users WHERE LOWER(email) = $1 LIMIT 1',
+        'SELECT id, name, email, password, role, status, company_name, avatar_url, termination_reason FROM users WHERE LOWER(email) = $1 LIMIT 1',
         [email]
     );
 
@@ -28,6 +36,13 @@ export async function loginAction(prevState, formData) {
     }
 
     const user = result.rows[0];
+
+    if (user.status === 'Terminated') {
+        return {
+        error: `Kerjasama akun supplier ini telah diberhentikan. Alasan: ${user.termination_reason || 'Kebijakan manajemen gudang.'}`,
+        };
+    }
+
     const isPasswordValid = await verifyPassword(password, user.password);
 
     if (!isPasswordValid) {
@@ -41,6 +56,7 @@ export async function loginAction(prevState, formData) {
         role: user.role,
         status: user.status,
         company_name: user.company_name || '',
+        avatar_url: user.avatar_url || '',
     });
 
     await setSessionCookie(token);
@@ -115,7 +131,7 @@ export async function resetPasswordAction(prevState, formData) {
     }
 
     const userRes = await query(
-        'SELECT id, role, phone FROM users WHERE LOWER(email) = $1 LIMIT 1',
+        'SELECT id, role, status, phone FROM users WHERE LOWER(email) = $1 LIMIT 1',
         [email]
     );
 
@@ -131,10 +147,16 @@ export async function resetPasswordAction(prevState, formData) {
         };
     }
 
-    const normalizedDbPhone = String(user.phone || '').replace(/[\s-]/g, '');
-    const normalizedInputPhone = phone.replace(/[\s-]/g, '');
+    if (user.status === 'Terminated') {
+        return {
+        error: 'Akun supplier telah diberhentikan kerjasamanya sehingga tidak dapat mengatur ulang kata sandi.',
+        };
+    }
 
-    if (!normalizedDbPhone || normalizedDbPhone !== normalizedInputPhone) {
+    const dbPhone = normalizePhone(user.phone);
+    const inputPhone = normalizePhone(phone);
+
+    if (!dbPhone || dbPhone !== inputPhone) {
         return { error: 'Nomor telepon tidak cocok dengan data yang terdaftar pada akun supplier ini.' };
     }
 
