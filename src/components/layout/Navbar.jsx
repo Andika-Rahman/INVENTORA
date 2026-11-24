@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { logoutAction } from '@/actions/authActions';
 import ThemeToggle from '@/components/theme/ThemeToggle';
+import NotificationBell from '@/components/layout/NotificationBell';
 
 const roleBadgeConfig = {
     admin: {
@@ -73,6 +74,7 @@ export default function Navbar({ session }) {
 
             <div className="flex items-center gap-3">
             <ThemeToggle />
+            <NotificationBell />
 
             <div ref={dropdownRef} className="relative">
                 <button
