@@ -150,5 +150,5 @@ export async function resetPasswordAction(prevState, formData) {
 
 export async function logoutAction() {
     await clearSessionCookie();
-    redirect('/login');
+    redirect('/');
 }
