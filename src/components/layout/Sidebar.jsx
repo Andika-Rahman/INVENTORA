@@ -59,7 +59,7 @@ export default function Sidebar({ session }) {
     const allowedItems = navItems.filter((item) => item.roles.includes(role));
 
     return (
-        <aside className="w-64 shrink-0 bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-zinc-800 flex flex-col justify-between min-h-screen">
+        <aside className="w-64 shrink-0 sticky top-0 h-screen overflow-y-auto bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-zinc-800 flex flex-col justify-between">
         <div>
             <div className="h-1 w-full bg-linear-to-r from-red-600 via-white to-emerald-600" />
 

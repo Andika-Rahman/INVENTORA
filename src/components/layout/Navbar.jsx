@@ -10,6 +10,7 @@ import {
     UserCog,
 } from 'lucide-react';
 import { logoutAction } from '@/actions/authActions';
+import ThemeToggle from '@/components/theme/ThemeToggle';
 
 const roleBadgeConfig = {
     admin: {
@@ -70,73 +71,77 @@ export default function Navbar({ session }) {
             </span>
             </div>
 
+            <div className="flex items-center gap-3">
+            <ThemeToggle />
+
             <div ref={dropdownRef} className="relative">
-            <button
+                <button
                 type="button"
                 onClick={() => setDropdownOpen((prev) => !prev)}
                 className="flex items-center gap-3 pl-3 pr-2.5 py-1.5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:border-red-400 transition cursor-pointer"
-            >
+                >
                 <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
                     {session?.name}
-                </p>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-tight">
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-tight">
                     {session?.email}
-                </p>
+                    </p>
                 </div>
 
                 {session?.avatar_url ? (
-                <img
+                    <img
                     src={session.avatar_url}
                     alt={session.name}
                     className="w-9 h-9 rounded-xl object-cover border border-emerald-400"
-                />
+                    />
                 ) : (
-                <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 flex items-center justify-center">
                     <User className="w-4 h-4" />
-                </div>
+                    </div>
                 )}
 
                 <ChevronDown
-                className={`w-4 h-4 text-slate-400 transition-transform ${
+                    className={`w-4 h-4 text-slate-400 transition-transform ${
                     dropdownOpen ? 'rotate-180' : ''
-                }`}
+                    }`}
                 />
-            </button>
+                </button>
 
-            {dropdownOpen && (
+                {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden z-50">
-                <div className="px-4 py-3 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-950/60">
+                    <div className="px-4 py-3 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-950/60">
                     <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                    {session?.name}
+                        {session?.name}
                     </p>
                     <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
-                    {roleInfo.label}
+                        {roleInfo.label}
                     </p>
-                </div>
+                    </div>
 
-                <div className="p-1.5 space-y-1">
+                    <div className="p-1.5 space-y-1">
                     <Link
-                    href="/dashboard/profile"
-                    onClick={() => setDropdownOpen(false)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 transition"
+                        href="/dashboard/profile"
+                        onClick={() => setDropdownOpen(false)}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 transition"
                     >
-                    <UserCog className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>Edit Profil & Foto</span>
+                        <UserCog className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>Edit Profil & Foto</span>
                     </Link>
 
                     <form action={logoutAction}>
-                    <button
+                        <button
                         type="submit"
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition cursor-pointer"
-                    >
+                        >
                         <LogOut className="w-4 h-4" />
                         <span>Logout</span>
-                    </button>
+                        </button>
                     </form>
+                    </div>
                 </div>
-                </div>
-            )}
+                )}
+            </div>
             </div>
         </div>
         </header>
