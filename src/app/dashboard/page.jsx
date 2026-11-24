@@ -1,443 +1,208 @@
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import {
     Package,
     ArrowLeftRight,
     Wallet,
-    AlertTriangle,
     UserCheck,
-    CheckCircle2,
-    XCircle,
+    Tags,
     Truck,
-    FolderTree,
+    AlertTriangle,
+    ArrowUpRight,
+    Building2,
     Clock,
-    PlusCircle,
-    ArrowRight,
+    CheckCircle2,
+    ShieldCheck,
 } from 'lucide-react';
 import { getSession } from '@/lib/auth';
 import { query } from '@/lib/db';
-import { formatRupiah, formatDate, getStockStatus } from '@/lib/formatters';
-import { updateSupplierStatusAction } from '@/actions/supplierActions';
+
+function formatRupiah(amount) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0,
+    }).format(Number(amount || 0));
+}
+
+const roleHeaderMap = {
+    admin: {
+        title: 'Dashboard Administrator',
+        subtitle: 'Ringkasan inventori gudang, verifikasi supplier, dan peringatan stok kritis',
+    },
+    warehouse_manager: {
+        title: 'Dashboard Warehouse Manager',
+        subtitle: 'Kontrol pengadaan Restock PO, persetujuan transaksi, dan kesehatan stok',
+    },
+    staff_gudang: {
+        title: 'Dashboard Staff Gudang',
+        subtitle: 'Pemantauan penerimaan fisik barang, pengiriman keluar, dan lokasi rak',
+    },
+    supplier: {
+        title: 'Dashboard Mitra Supplier',
+        subtitle: 'Pantau pesanan Restock PO dari gudang dan status pengiriman komponen',
+    },
+};
 
 export default async function DashboardPage() {
     const session = await getSession();
-
     if (!session) {
         redirect('/login');
     }
 
-    if (session.role === 'admin') {
-        const [statsRes, pendingSupRes, alertProductsRes] = await Promise.all([
-        query(`
-            SELECT
-            (SELECT COUNT(*)::int FROM products) AS total_products,
-            (SELECT COUNT(*)::int FROM transactions WHERE DATE_TRUNC('month', transaction_date) = DATE_TRUNC('month', CURRENT_DATE)) AS monthly_transactions,
-            (SELECT COALESCE(SUM(stock * purchase_price), 0) FROM products) AS inventory_value
-        `),
-        query(`
-            SELECT id, name, email, company_name, phone, created_at
-            FROM users
-            WHERE role = 'supplier' AND status = 'Pending'
+    const headerInfo = roleHeaderMap[session.role] || roleHeaderMap.staff_gudang;
+    const isSupplier = session.role === 'supplier';
+
+    if (isSupplier) {
+        const [poStatsRes, recentPoRes, productCountRes] = await Promise.all([
+        query(
+            `SELECT
+            COUNT(*)::int AS total_po,
+            COUNT(*) FILTER (WHERE status = 'Pending')::int AS pending_po,
+            COUNT(*) FILTER (WHERE status IN ('Confirmed', 'In Transit'))::int AS active_po,
+            COUNT(*) FILTER (WHERE status = 'Received')::int AS completed_po
+            FROM restock_orders
+            WHERE supplier_id = $1`,
+            [session.id]
+        ),
+        query(
+            `SELECT id, po_number, order_date, expected_delivery_date, status
+            FROM restock_orders
+            WHERE supplier_id = $1
             ORDER BY created_at DESC
-        `),
-        query(`
-            SELECT p.id, p.sku, p.name, p.stock, p.min_stock, p.low_stock, p.unit, p.rack_location, c.name AS category_name
-            FROM products p
-            JOIN categories c ON p.category_id = c.id
-            WHERE p.stock <= p.min_stock
-            ORDER BY p.stock ASC
-        `),
+            LIMIT 5`,
+            [session.id]
+        ),
+        query('SELECT COUNT(*)::int AS total FROM products'),
         ]);
 
-        const stats = statsRes.rows[0];
-        const pendingSuppliers = pendingSupRes.rows;
-        const alertProducts = alertProductsRes.rows;
+        const stats = poStatsRes.rows[0];
 
         return (
         <div className="space-y-6">
-            <div>
-            <h1 className="text-2xl font-bold text-white">Dashboard Administrator</h1>
-            <p className="text-sm text-slate-400 mt-1">
-                Ringkasan inventori gudang, verifikasi supplier, dan peringatan stok kritis
-            </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-400">Total Produk</span>
-                <Package className="w-4 h-4 text-blue-400" />
-                </div>
-                <p className="text-2xl font-bold text-white mt-2">{stats.total_products}</p>
-                <p className="text-xs text-slate-500 mt-1">SKU komponen terdaftar</p>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-400">Transaksi Bulan Ini</span>
-                <ArrowLeftRight className="w-4 h-4 text-emerald-400" />
-                </div>
-                <p className="text-2xl font-bold text-white mt-2">{stats.monthly_transactions}</p>
-                <p className="text-xs text-slate-500 mt-1">Barang masuk & keluar</p>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-400">Nilai Inventori</span>
-                <Wallet className="w-4 h-4 text-violet-400" />
-                </div>
-                <p className="text-xl font-bold text-white mt-2">
-                {formatRupiah(stats.inventory_value)}
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-xs">
+            <div className="h-1.5 w-full bg-linear-to-r from-red-600 via-white to-emerald-600" />
+            <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {headerInfo.title}
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
+                    {headerInfo.subtitle}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">Berdasarkan harga beli</p>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-400">Supplier Pending</span>
-                <UserCheck className="w-4 h-4 text-amber-400" />
                 </div>
-                <p className="text-2xl font-bold text-amber-400 mt-2">
-                {pendingSuppliers.length}
-                </p>
-                <p className="text-xs text-slate-500 mt-1">Menunggu persetujuan</p>
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/25 self-start sm:self-auto">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Akun Mitra Terverifikasi</span>
+                </span>
             </div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <h2 className="text-sm font-bold text-white mb-3">Akses Cepat Modul</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <Link
-                href="/dashboard/products"
-                className="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-blue-500/50 text-xs font-semibold text-slate-200 flex items-center gap-2 transition"
-                >
-                <Package className="w-4 h-4 text-blue-400" />
-                <span>Produk</span>
-                </Link>
-                <Link
-                href="/dashboard/categories"
-                className="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-blue-500/50 text-xs font-semibold text-slate-200 flex items-center gap-2 transition"
-                >
-                <FolderTree className="w-4 h-4 text-emerald-400" />
-                <span>Kategori</span>
-                </Link>
-                <Link
-                href="/dashboard/transactions"
-                className="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-blue-500/50 text-xs font-semibold text-slate-200 flex items-center gap-2 transition"
-                >
-                <ArrowLeftRight className="w-4 h-4 text-violet-400" />
-                <span>Transaksi</span>
-                </Link>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs">
+                <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                    Total Restock PO
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
+                    <Truck className="w-4 h-4" />
+                </div>
+                </div>
+                <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-3">
+                {stats.total_po}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                Seluruh pesanan dari gudang
+                </p>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs">
+                <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                    Menunggu Konfirmasi
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                    <Clock className="w-4 h-4" />
+                </div>
+                </div>
+                <p className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-3">
+                {stats.pending_po}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                Perlu respon konfirmasi PO
+                </p>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs">
+                <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                    Pengiriman Berjalan
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4" />
+                </div>
+                </div>
+                <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-3">
+                {stats.active_po}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                Status Confirmed & In Transit
+                </p>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs">
+                <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                    Katalog Komponen
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 flex items-center justify-center">
+                    <Package className="w-4 h-4" />
+                </div>
+                </div>
+                <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-3">
+                {productCountRes.rows[0].total}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                SKU terdaftar di INVENTORA
+                </p>
+            </div>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                Pesanan Restock PO Terbaru
+                </h2>
                 <Link
                 href="/dashboard/restocks"
-                className="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-blue-500/50 text-xs font-semibold text-slate-200 flex items-center gap-2 transition"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400 hover:underline"
                 >
-                <Truck className="w-4 h-4 text-cyan-400" />
-                <span>Restock PO</span>
-                </Link>
-                <Link
-                href="/dashboard/suppliers"
-                className="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-amber-500/50 text-xs font-semibold text-slate-200 flex items-center gap-2 transition"
-                >
-                <UserCheck className="w-4 h-4 text-amber-400" />
-                <span>Verifikasi Supplier</span>
+                <span>Buka Manajemen PO</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
                 </Link>
             </div>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-amber-400" />
-                    <h2 className="font-bold text-white text-sm">
-                    Supplier Menunggu Approval ({pendingSuppliers.length})
-                    </h2>
-                </div>
-                <Link
-                    href="/dashboard/suppliers"
-                    className="text-xs text-blue-400 hover:text-blue-300 font-medium"
-                >
-                    Lihat Semua
-                </Link>
-                </div>
-
-                {pendingSuppliers.length === 0 ? (
-                <p className="text-xs text-slate-400 py-6 text-center bg-slate-950/60 rounded-xl border border-slate-800">
-                    Tidak ada pengajuan supplier baru yang menunggu verifikasi.
-                </p>
-                ) : (
-                <div className="space-y-3">
-                    {pendingSuppliers.map((sup) => (
-                    <div
-                        key={sup.id}
-                        className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                    >
-                        <div>
-                        <p className="font-semibold text-sm text-white">
-                            {sup.company_name || sup.name}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                            PIC: {sup.name} • {sup.email}
-                        </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                        <form action={updateSupplierStatusAction}>
-                            <input type="hidden" name="supplier_id" value={sup.id} />
-                            <input type="hidden" name="status" value="Approved" />
-                            <button
-                            type="submit"
-                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-1 cursor-pointer"
-                            >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Approve</span>
-                            </button>
-                        </form>
-                        <form action={updateSupplierStatusAction}>
-                            <input type="hidden" name="supplier_id" value={sup.id} />
-                            <input type="hidden" name="status" value="Rejected" />
-                            <button
-                            type="submit"
-                            className="px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 text-xs font-semibold inline-flex items-center gap-1 cursor-pointer"
-                            >
-                            <XCircle className="w-3.5 h-3.5" />
-                            <span>Reject</span>
-                            </button>
-                        </form>
-                        </div>
-                    </div>
-                    ))}
-                </div>
-                )}
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-red-400" />
-                    <h2 className="font-bold text-white text-sm">
-                    Peringatan Stok Severe / Out of Stock ({alertProducts.length})
-                    </h2>
-                </div>
-                <Link
-                    href="/dashboard/products"
-                    className="text-xs text-blue-400 hover:text-blue-300 font-medium"
-                >
-                    Kelola Produk
-                </Link>
-                </div>
-
-                {alertProducts.length === 0 ? (
-                <p className="text-xs text-slate-400 py-6 text-center bg-slate-950/60 rounded-xl border border-slate-800">
-                    Seluruh stok komponen dalam kondisi aman.
-                </p>
-                ) : (
-                <div className="space-y-2.5">
-                    {alertProducts.map((item) => {
-                    const statusInfo = getStockStatus(
-                        item.stock,
-                        item.min_stock,
-                        item.low_stock
-                    );
-                    return (
-                        <div
-                        key={item.id}
-                        className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3"
-                        >
-                        <div>
-                            <p className="text-xs font-mono text-slate-400">
-                            {item.sku} • {item.rack_location}
-                            </p>
-                            <p className="text-sm font-semibold text-white">{item.name}</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                            <span
-                            className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${statusInfo.badgeClass}`}
-                            >
-                            {statusInfo.label}
-                            </span>
-                            <p className="text-xs text-slate-300 mt-1">
-                            Sisa: <strong className="text-white">{item.stock}</strong> {item.unit}
-                            </p>
-                        </div>
-                        </div>
-                    );
-                    })}
-                </div>
-                )}
-            </div>
-            </div>
-        </div>
-        );
-    }
-
-    if (session.role === 'warehouse_manager') {
-        const [overviewRes, pendingTrxRes, activeRestockRes] = await Promise.all([
-        query(`
-            SELECT
-            COUNT(*)::int AS total_items,
-            COALESCE(SUM(stock), 0)::int AS total_units,
-            COUNT(*) FILTER (WHERE stock <= low_stock)::int AS low_stock_count
-            FROM products
-        `),
-        query(`
-            SELECT t.id, t.transaction_number, t.type, t.transaction_date, u.name AS staff_name
-            FROM transactions t
-            JOIN users u ON t.created_by = u.id
-            WHERE t.status = 'Pending'
-            ORDER BY t.created_at DESC
-            LIMIT 5
-        `),
-        query(`
-            SELECT ro.id, ro.po_number, ro.expected_delivery_date, ro.status, u.company_name, u.name AS supplier_name
-            FROM restock_orders ro
-            JOIN users u ON ro.supplier_id = u.id
-            WHERE ro.status IN ('Pending', 'Confirmed', 'In Transit')
-            ORDER BY ro.created_at DESC
-            LIMIT 5
-        `),
-        ]);
-
-        const overview = overviewRes.rows[0];
-
-        return (
-        <div className="space-y-6">
-            <div>
-            <h1 className="text-2xl font-bold text-white">Dashboard Warehouse Manager</h1>
-            <p className="text-sm text-slate-400 mt-1">
-                Pemantauan stok gudang, persetujuan transaksi, dan progres restock supplier
-            </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <span className="text-xs text-slate-400">Total Jenis Komponen</span>
-                <p className="text-2xl font-bold text-white mt-2">{overview.total_items} SKU</p>
-            </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <span className="text-xs text-slate-400">Total Fisik Tersimpan</span>
-                <p className="text-2xl font-bold text-blue-400 mt-2">{overview.total_units} Unit</p>
-            </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <span className="text-xs text-slate-400">Low / Severe / Out of Stock</span>
-                <p className="text-2xl font-bold text-amber-400 mt-2">
-                {overview.low_stock_count} Item
-                </p>
-            </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                <h2 className="font-bold text-white text-sm">Transaksi Menunggu Approval</h2>
-                <Link href="/dashboard/transactions" className="text-xs text-blue-400">
-                    Buka Transaksi
-                </Link>
-                </div>
-                {pendingTrxRes.rows.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4">Tidak ada transaksi pending.</p>
-                ) : (
-                pendingTrxRes.rows.map((trx) => (
-                    <div
-                    key={trx.id}
-                    className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs"
-                    >
-                    <div>
-                        <p className="font-bold text-white">{trx.transaction_number}</p>
-                        <p className="text-slate-400">
-                        Oleh {trx.staff_name} • {formatDate(trx.transaction_date)}
-                        </p>
-                    </div>
-                    <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 font-semibold">
-                        {trx.type === 'IN' ? 'Barang Masuk' : 'Barang Keluar'}
-                    </span>
-                    </div>
-                ))
-                )}
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                <h2 className="font-bold text-white text-sm">Restock Order Berjalan</h2>
-                <Link href="/dashboard/restocks" className="text-xs text-blue-400">
-                    Kelola Restock
-                </Link>
-                </div>
-                {activeRestockRes.rows.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4">Tidak ada PO aktif.</p>
-                ) : (
-                activeRestockRes.rows.map((po) => (
-                    <div
-                    key={po.id}
-                    className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs"
-                    >
-                    <div>
-                        <p className="font-bold text-white">{po.po_number}</p>
-                        <p className="text-slate-400">
-                        {po.company_name || po.supplier_name} • Est. {formatDate(po.expected_delivery_date)}
-                        </p>
-                    </div>
-                    <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 font-semibold">
-                        {po.status}
-                    </span>
-                    </div>
-                ))
-                )}
-            </div>
-            </div>
-        </div>
-        );
-    }
-
-    if (session.role === 'staff_gudang') {
-        const todayTrxRes = await query(`
-        SELECT id, transaction_number, type, status, customer_name, created_at
-        FROM transactions
-        WHERE transaction_date = CURRENT_DATE
-        ORDER BY created_at DESC
-        `);
-
-        return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-                <h1 className="text-2xl font-bold text-white">Dashboard Staff Gudang</h1>
-                <p className="text-sm text-slate-400 mt-1">
-                Pencatatan cepat transaksi barang masuk dan keluar hari ini
-                </p>
-            </div>
-            <Link
-                href="/dashboard/transactions"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition"
-            >
-                <PlusCircle className="w-4 h-4" />
-                <span>Quick Entry Transaksi</span>
-            </Link>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-            <h2 className="font-bold text-white text-sm">
-                Daftar Transaksi Hari Ini ({todayTrxRes.rows.length})
-            </h2>
-            {todayTrxRes.rows.length === 0 ? (
-                <p className="text-xs text-slate-400 py-6 text-center bg-slate-950 rounded-xl border border-slate-800">
-                Belum ada transaksi yang dicatat hari ini.
+            {recentPoRes.rows.length === 0 ? (
+                <p className="text-xs text-slate-500 dark:text-zinc-400 py-4 text-center">
+                Belum ada pesanan Restock PO untuk akun Anda.
                 </p>
             ) : (
-                <div className="space-y-2.5">
-                {todayTrxRes.rows.map((trx) => (
+                <div className="divide-y divide-slate-100 dark:divide-zinc-800">
+                {recentPoRes.rows.map((po) => (
                     <div
-                    key={trx.id}
-                    className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs"
+                    key={po.id}
+                    className="py-3 flex items-center justify-between gap-3 text-xs"
                     >
                     <div>
-                        <p className="font-bold text-white">{trx.transaction_number}</p>
-                        <p className="text-slate-400">
-                        Tipe: {trx.type === 'IN' ? 'Barang Masuk' : `Barang Keluar (${trx.customer_name || '-'})`}
+                        <p className="font-bold text-slate-900 dark:text-white">
+                        {po.po_number}
+                        </p>
+                        <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
+                        Estimasi Tiba: {new Date(po.expected_delivery_date).toLocaleDateString('id-ID')}
                         </p>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-200 font-semibold">
-                        {trx.status}
+                    <span className="px-2.5 py-1 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/25">
+                        {po.status}
                     </span>
                     </div>
                 ))}
@@ -448,99 +213,311 @@ export default async function DashboardPage() {
         );
     }
 
-    const [pendingPoRes, historyPoRes] = await Promise.all([
+    const [productSummaryRes, trxCountRes, pendingSuppliersRes, criticalProductsRes] =
+        await Promise.all([
         query(
-        `SELECT id, po_number, order_date, expected_delivery_date, notes
-        FROM restock_orders
-        WHERE supplier_id = $1 AND status = 'Pending'
-        ORDER BY created_at DESC`,
-        [session.id]
+            `SELECT
+            COUNT(*)::int AS total_products,
+            COALESCE(SUM(stock * purchase_price), 0) AS total_valuation
+            FROM products`
+        ),
+        query('SELECT COUNT(*)::int AS total_transactions FROM transactions'),
+        query(
+            `SELECT id, name, email, company_name, created_at
+            FROM users
+            WHERE role = 'supplier' AND status = 'Pending'
+            ORDER BY created_at DESC`
         ),
         query(
-        `SELECT id, po_number, order_date, expected_delivery_date, status
-        FROM restock_orders
-        WHERE supplier_id = $1 AND status <> 'Pending'
-        ORDER BY created_at DESC
-        LIMIT 8`,
-        [session.id]
+            `SELECT id, sku, name, rack_location, stock, min_stock, unit
+            FROM products
+            WHERE stock <= min_stock
+            ORDER BY stock ASC, name ASC
+            LIMIT 6`
         ),
-    ]);
+        ]);
+
+    const productSummary = productSummaryRes.rows[0];
+    const totalTransactions = trxCountRes.rows[0].total_transactions;
+    const pendingSuppliers = pendingSuppliersRes.rows;
+    const criticalProducts = criticalProductsRes.rows;
+
+    const quickLinks = [
+        {
+        href: '/dashboard/products',
+        label: 'Produk',
+        icon: Package,
+        roles: ['admin', 'warehouse_manager', 'staff_gudang'],
+        accent: 'text-red-600 dark:text-red-400',
+        },
+        {
+        href: '/dashboard/categories',
+        label: 'Kategori',
+        icon: Tags,
+        roles: ['admin', 'warehouse_manager', 'staff_gudang'],
+        accent: 'text-emerald-600 dark:text-emerald-400',
+        },
+        {
+        href: '/dashboard/transactions',
+        label: 'Transaksi',
+        icon: ArrowLeftRight,
+        roles: ['admin', 'warehouse_manager', 'staff_gudang'],
+        accent: 'text-red-600 dark:text-red-400',
+        },
+        {
+        href: '/dashboard/restocks',
+        label: 'Restock PO',
+        icon: Truck,
+        roles: ['admin', 'warehouse_manager', 'staff_gudang'],
+        accent: 'text-emerald-600 dark:text-emerald-400',
+        },
+        {
+        href: '/dashboard/suppliers',
+        label: 'Verifikasi Supplier',
+        icon: UserCheck,
+        roles: ['admin'],
+        accent: 'text-red-600 dark:text-red-400',
+        },
+    ].filter((item) => item.roles.includes(session.role));
 
     return (
         <div className="space-y-6">
-        <div>
-            <h1 className="text-2xl font-bold text-white">Dashboard Mitra Supplier</h1>
-            <p className="text-sm text-slate-400 mt-1">
-            Konfirmasi pesanan restock dari gudang INVENTORA dan pantau riwayat pengiriman
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-xs">
+            <div className="h-1.5 w-full bg-linear-to-r from-red-600 via-white to-emerald-600" />
+            <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                {headerInfo.title}
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
+                {headerInfo.subtitle}
+                </p>
+            </div>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25 text-xs font-bold text-emerald-700 dark:text-emerald-400 self-start sm:self-auto">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Sistem Gudang Aktif</span>
+            </div>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs relative overflow-hidden">
+            <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                Total Produk
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
+                <Package className="w-4 h-4" />
+                </div>
+            </div>
+            <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-3">
+                {productSummary.total_products}
             </p>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                SKU komponen terdaftar
+            </p>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs">
+            <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                Transaksi Gudang
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <ArrowLeftRight className="w-4 h-4" />
+                </div>
+            </div>
+            <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-3">
+                {totalTransactions}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                Barang masuk & keluar
+            </p>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs">
+            <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                Nilai Inventori
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Wallet className="w-4 h-4" />
+                </div>
+            </div>
+            <p className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-400 mt-3 truncate">
+                {formatRupiah(productSummary.total_valuation)}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                Berdasarkan harga beli
+            </p>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs">
+            <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                Supplier Pending
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
+                <UserCheck className="w-4 h-4" />
+                </div>
+            </div>
+            <p className="text-3xl font-extrabold text-red-600 dark:text-red-400 mt-3">
+                {pendingSuppliers.length}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                Menunggu persetujuan
+            </p>
+            </div>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-3">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+            Akses Cepat Modul
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {quickLinks.map((item) => {
+                const Icon = item.icon;
+                return (
+                <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 hover:border-red-400 dark:hover:border-red-500/40 text-xs font-semibold text-slate-800 dark:text-zinc-200 transition"
+                >
+                    <Icon className={`w-4 h-4 shrink-0 ${item.accent}`} />
+                    <span>{item.label}</span>
+                </Link>
+                );
+            })}
+            </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-400" />
-                <h2 className="font-bold text-white text-sm">
-                    Restock Order Perlu Dikonfirmasi ({pendingPoRes.rows.length})
+                <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Supplier Menunggu Approval ({pendingSuppliers.length})
                 </h2>
                 </div>
+                {session.role === 'admin' && (
                 <Link
-                href="/dashboard/restocks"
-                className="text-xs text-blue-400 inline-flex items-center gap-1"
+                    href="/dashboard/suppliers"
+                    className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline"
                 >
-                <span>Proses</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                    Lihat Semua
                 </Link>
+                )}
             </div>
 
-            {pendingPoRes.rows.length === 0 ? (
-                <p className="text-xs text-slate-400 py-5 text-center bg-slate-950 rounded-xl border border-slate-800">
-                Tidak ada pesanan restock baru yang menunggu konfirmasi.
-                </p>
-            ) : (
-                pendingPoRes.rows.map((po) => (
-                <div
-                    key={po.id}
-                    className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs"
-                >
-                    <div>
-                    <p className="font-bold text-white">{po.po_number}</p>
-                    <p className="text-slate-400">
-                        Target Kirim: {formatDate(po.expected_delivery_date)}
-                    </p>
-                    </div>
-                    <Link
-                    href="/dashboard/restocks"
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold"
-                    >
-                    Konfirmasi
-                    </Link>
+            {pendingSuppliers.length === 0 ? (
+                <div className="p-6 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800 text-center text-xs text-slate-500 dark:text-zinc-400">
+                Seluruh pendaftaran mitra supplier telah diverifikasi.
                 </div>
-                ))
+            ) : (
+                <div className="space-y-3">
+                {pendingSuppliers.map((sup) => (
+                    <div
+                    key={sup.id}
+                    className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                    <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <Building2 className="w-4 h-4" />
+                        </div>
+                        <div>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">
+                            {sup.company_name || sup.name}
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                            PIC: {sup.name}
+                        </p>
+                        <p className="text-[11px] text-slate-400 dark:text-zinc-500">
+                            {sup.email}
+                        </p>
+                        </div>
+                    </div>
+
+                    {session.role === 'admin' ? (
+                        <Link
+                        href="/dashboard/suppliers"
+                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition shrink-0"
+                        >
+                        <span>Tinjau Verifikasi</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Link>
+                    ) : (
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/25">
+                        Menunggu Admin
+                        </span>
+                    )}
+                    </div>
+                ))}
+                </div>
             )}
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-            <h2 className="font-bold text-white text-sm">Riwayat Pengiriman ke Gudang</h2>
-            {historyPoRes.rows.length === 0 ? (
-                <p className="text-xs text-slate-400 py-5 text-center bg-slate-950 rounded-xl border border-slate-800">
-                Belum ada riwayat pengiriman.
-                </p>
-            ) : (
-                historyPoRes.rows.map((po) => (
-                <div
-                    key={po.id}
-                    className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs"
-                >
-                    <div>
-                    <p className="font-bold text-white">{po.po_number}</p>
-                    <p className="text-slate-400">Order: {formatDate(po.order_date)}</p>
-                    </div>
-                    <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-200 font-semibold">
-                    {po.status}
-                    </span>
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Peringatan Stok Severe / Out of Stock ({criticalProducts.length})
+                </h2>
                 </div>
-                ))
+                <Link
+                href="/dashboard/products"
+                className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline"
+                >
+                Kelola Produk
+                </Link>
+            </div>
+
+            {criticalProducts.length === 0 ? (
+                <div className="p-6 rounded-xl bg-emerald-50/70 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25 text-center text-xs text-emerald-700 dark:text-emerald-300">
+                Seluruh stok komponen berada di atas batas minimum.
+                </div>
+            ) : (
+                <div className="space-y-2.5">
+                {criticalProducts.map((item) => {
+                    const isOut = Number(item.stock) === 0;
+
+                    return (
+                    <div
+                        key={item.id}
+                        className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 flex items-center justify-between gap-3"
+                    >
+                        <div className="min-w-0">
+                        <p className="text-[11px] font-mono text-slate-500 dark:text-zinc-400">
+                            {item.sku} • {item.rack_location}
+                        </p>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5">
+                            {item.name}
+                        </p>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                        <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            isOut
+                                ? 'bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300'
+                                : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300'
+                            }`}
+                        >
+                            {isOut ? 'Out of Stock' : 'Severe'}
+                        </span>
+                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1">
+                            Sisa:{' '}
+                            <strong className="text-slate-900 dark:text-white">
+                            {item.stock}
+                            </strong>{' '}
+                            {item.unit}
+                        </p>
+                        </div>
+                    </div>
+                    );
+                })}
+                </div>
             )}
             </div>
         </div>
