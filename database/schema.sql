@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS transaction_items CASCADE;
 DROP TABLE IF EXISTS transactions CASCADE;
 DROP TABLE IF EXISTS restock_order_items CASCADE;
@@ -12,10 +13,12 @@ CREATE TABLE users (
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(30) NOT NULL CHECK (role IN ('admin', 'warehouse_manager', 'staff_gudang', 'supplier')),
-    status VARCHAR(20) NOT NULL DEFAULT 'Approved' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
+    status VARCHAR(20) NOT NULL DEFAULT 'Approved' CHECK (status IN ('Pending', 'Approved', 'Rejected', 'Terminated')),
     company_name VARCHAR(150),
     phone VARCHAR(30),
     address TEXT,
+    avatar_url TEXT,
+    termination_reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -97,6 +100,16 @@ CREATE TABLE transaction_items (
     transaction_id INTEGER NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
     product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
     quantity INTEGER NOT NULL CHECK (quantity > 0)
+);
+
+CREATE TABLE notifications (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    message TEXT NOT NULL,
+    category VARCHAR(40) NOT NULL DEFAULT 'shipment',
+    po_number VARCHAR(60),
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 INSERT INTO users (name, email, password, role, status, company_name, phone, address) VALUES
