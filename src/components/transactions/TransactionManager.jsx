@@ -447,7 +447,7 @@ export default function TransactionManager({
                                     className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-semibold inline-flex items-center gap-1 cursor-pointer"
                                 >
                                     <RotateCcw className="w-3.5 h-3.5" />
-                                    <span>Ajukan Refund & Pesan Baru</span>
+                                    <span>Ajukan Refund &amp; Pesan Baru</span>
                                 </button>
                                 )}
 
@@ -581,7 +581,7 @@ export default function TransactionManager({
                         className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                         >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        <span>Ajukan Refund & Buat Pesanan Baru</span>
+                        <span>Ajukan Refund &amp; Buat Pesanan Baru</span>
                         </button>
                     )}
                 </div>
@@ -662,7 +662,7 @@ export default function TransactionManager({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
-                        Tanggal Pemeriksaan & Penerimaan
+                        Tanggal Pemeriksaan &amp; Penerimaan
                         </label>
                         <input
                         type="date"
@@ -716,7 +716,7 @@ export default function TransactionManager({
                     <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
                         <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                        Hasil Cek Fisik Produk Diterima
+                        Hasil Cek Fisik Produk &amp; Jumlah Diterima
                         </label>
                         <button
                         type="button"
@@ -743,7 +743,7 @@ export default function TransactionManager({
                                 )
                             )
                             }
-                            className="flex-1 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-emerald-500"
+                            className="flex-1 min-w-0 truncate px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-emerald-500"
                         >
                             <option value="">-- Pilih Komponen --</option>
                             {products.map((prod) => (
@@ -758,6 +758,7 @@ export default function TransactionManager({
                             name="quantity"
                             min="1"
                             required
+                            placeholder="Qty"
                             value={row.quantity}
                             onChange={(e) =>
                             setIncomingItems((prev) =>
@@ -766,7 +767,7 @@ export default function TransactionManager({
                                 )
                             )
                             }
-                            className="w-24 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-emerald-500"
+                            className="w-20 sm:w-24 shrink-0 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs text-center font-semibold focus:outline-none focus:border-emerald-500"
                         />
 
                         {incomingItems.length > 1 && (
@@ -775,7 +776,8 @@ export default function TransactionManager({
                             onClick={() =>
                                 setIncomingItems((prev) => prev.filter((_, i) => i !== idx))
                             }
-                            className="p-2.5 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/30 cursor-pointer"
+                            title="Hapus Baris"
+                            className="p-2.5 shrink-0 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/30 transition cursor-pointer"
                             >
                             <Trash2 className="w-4 h-4" />
                             </button>
@@ -888,7 +890,7 @@ export default function TransactionManager({
                     <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
                         <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                        Daftar Produk Keluar
+                        Daftar Produk &amp; Jumlah Keluar
                         </label>
                         <button
                         type="button"
@@ -915,7 +917,7 @@ export default function TransactionManager({
                                 )
                             )
                             }
-                            className="flex-1 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-red-500"
+                            className="flex-1 min-w-0 truncate px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-red-500"
                         >
                             <option value="">-- Pilih Komponen --</option>
                             {products.map((prod) => (
@@ -930,6 +932,7 @@ export default function TransactionManager({
                             name="quantity"
                             min="1"
                             required
+                            placeholder="Qty"
                             value={row.quantity}
                             onChange={(e) =>
                             setOutgoingItems((prev) =>
@@ -938,7 +941,7 @@ export default function TransactionManager({
                                 )
                             )
                             }
-                            className="w-24 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-red-500"
+                            className="w-20 sm:w-24 shrink-0 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs text-center font-semibold focus:outline-none focus:border-red-500"
                         />
 
                         {outgoingItems.length > 1 && (
@@ -947,7 +950,8 @@ export default function TransactionManager({
                             onClick={() =>
                                 setOutgoingItems((prev) => prev.filter((_, i) => i !== idx))
                             }
-                            className="p-2.5 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/30 cursor-pointer"
+                            title="Hapus Baris"
+                            className="p-2.5 shrink-0 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/30 transition cursor-pointer"
                             >
                             <Trash2 className="w-4 h-4" />
                             </button>
@@ -1031,7 +1035,7 @@ export default function TransactionManager({
                 <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                        Daftar Produk
+                        Daftar Produk &amp; Quantity
                     </label>
                     <button
                         type="button"
@@ -1058,7 +1062,7 @@ export default function TransactionManager({
                             )
                             )
                         }
-                        className="flex-1 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-emerald-500"
+                        className="flex-1 min-w-0 truncate px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-emerald-500"
                         >
                         <option value="">-- Pilih Komponen --</option>
                         {products.map((prod) => (
@@ -1073,6 +1077,7 @@ export default function TransactionManager({
                         name="quantity"
                         min="1"
                         required
+                        placeholder="Qty"
                         value={row.quantity}
                         onChange={(e) =>
                             setEditItems((prev) =>
@@ -1081,7 +1086,7 @@ export default function TransactionManager({
                             )
                             )
                         }
-                        className="w-24 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-emerald-500"
+                        className="w-20 sm:w-24 shrink-0 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs text-center font-semibold focus:outline-none focus:border-emerald-500"
                         />
 
                         {editItems.length > 1 && (
@@ -1090,7 +1095,8 @@ export default function TransactionManager({
                             onClick={() =>
                             setEditItems((prev) => prev.filter((_, i) => i !== idx))
                             }
-                            className="p-2.5 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/30 cursor-pointer"
+                            title="Hapus Baris"
+                            className="p-2.5 shrink-0 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/30 transition cursor-pointer"
                         >
                             <Trash2 className="w-4 h-4" />
                         </button>
@@ -1194,4 +1200,4 @@ export default function TransactionManager({
         )}
         </div>
     );
-}
+    }
