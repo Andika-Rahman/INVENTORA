@@ -1,93 +1,182 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { getSession, hashPassword } from '@/lib/auth';
-import { query } from '@/lib/db';
+import bcrypt from 'bcryptjs';
+import * as dbModule from '@/lib/db';
+import { verifySessionToken } from '@/lib/auth';
 
-export async function createStaffAction(formData) {
-    const session = await getSession();
-    if (!session || session.role !== 'admin') {
-        return { error: 'Hanya Admin yang dapat menambahkan akun Staff Gudang.' };
+const db = dbModule.default || dbModule.pool || dbModule;
+
+async function ensureAdmin() {
+    const cookieStore = await cookies();
+    const token =
+        cookieStore.get('inventora_session')?.value ||
+        cookieStore.get('session')?.value ||
+        cookieStore.get('token')?.value ||
+        cookieStore.get('auth_token')?.value;
+
+    if (!token) {
+        throw new Error('Sesi login tidak ditemukan. Silakan login kembali.');
     }
 
-    const name = String(formData.get('name') || '').trim();
-    const email = String(formData.get('email') || '').trim().toLowerCase();
-    const phone = String(formData.get('phone') || '').trim();
-    const address = String(formData.get('address') || '').trim();
-    const password = String(formData.get('password') || '');
-    const confirmPassword = String(formData.get('confirm_password') || '');
-
-    if (!name || !email || !phone || !address || !password) {
-        return { error: 'Semua kolom data Staff Gudang wajib diisi.' };
+    const payload = await verifySessionToken(token);
+    if (!payload || payload.role !== 'admin') {
+        throw new Error('Akses ditolak. Hanya Administrator yang memiliki wewenang ini.');
     }
 
-    if (password.length < 6) {
-        return { error: 'Kata sandi minimal harus 6 karakter.' };
-    }
-
-    if (password !== confirmPassword) {
-        return { error: 'Konfirmasi kata sandi tidak cocok.' };
-    }
-
-    const existingRes = await query(
-        'SELECT id FROM users WHERE LOWER(email) = $1 LIMIT 1',
-        [email]
-    );
-
-    if (existingRes.rows.length > 0) {
-        return { error: 'Email tersebut sudah terdaftar di sistem.' };
-    }
-
-    const hashedPassword = await hashPassword(password);
-
-    await query(
-        `INSERT INTO users (name, email, password, role, status, company_name, phone, address)
-        VALUES ($1, $2, $3, 'staff_gudang', 'Approved', 'INVENTORA Warehouse HQ', $4, $5)`,
-        [name, email, hashedPassword, phone, address]
-    );
-
-    revalidatePath('/dashboard/staff');
-    revalidatePath('/dashboard');
-
-    return {
-        success: `Akun Staff Gudang atas nama ${name} berhasil ditambahkan dan siap digunakan.`,
-    };
+    return payload;
 }
 
-export async function deleteStaffAction(staffId) {
-    const session = await getSession();
-    if (!session || session.role !== 'admin') {
-        return { error: 'Hanya Admin yang dapat menghapus akun Staff Gudang.' };
+export async function createStaffAction(formData) {
+    try {
+        await ensureAdmin();
+
+        const name = String(formData.get('name') || '').trim();
+        const email = String(formData.get('email') || '').trim().toLowerCase();
+        const password = String(formData.get('password') || '');
+        const role = String(formData.get('role') || 'staff_gudang').trim();
+        const phone = String(formData.get('phone') || '').trim();
+        const address = String(formData.get('address') || '').trim();
+
+        if (!name || !email || !password) {
+        return { error: 'Nama lengkap, email, dan password wajib diisi.' };
+        }
+
+        if (!['staff_gudang', 'warehouse_manager'].includes(role)) {
+        return { error: 'Role tidak valid. Pilih Staff Gudang atau Warehouse Manager.' };
+        }
+
+        if (password.length < 6) {
+        return { error: 'Password minimal terdiri dari 6 karakter.' };
+        }
+
+        const existing = await db.query('SELECT id FROM users WHERE LOWER(email) = $1', [email]);
+        if (existing.rows.length > 0) {
+        return { error: 'Email tersebut sudah terdaftar pada akun lain.' };
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await db.query(
+        `INSERT INTO users (name, email, password, role, status, company_name, phone, address)
+        VALUES ($1, $2, $3, $4, 'Approved', 'INVENTORA Warehouse HQ', $5, $6)`,
+        [name, email, hashedPassword, role, phone || null, address || null]
+        );
+
+        revalidatePath('/dashboard/staff');
+        revalidatePath('/dashboard');
+
+        const roleLabel = role === 'warehouse_manager' ? 'Warehouse Manager' : 'Staff Gudang';
+        return { success: `Akun ${roleLabel} "${name}" berhasil ditambahkan.` };
+    } catch (error) {
+        return { error: error.message || 'Gagal menambahkan akun tim gudang.' };
     }
+}
 
-    const id = Number(staffId);
-    const staffRes = await query(
-        "SELECT id, name FROM users WHERE id = $1 AND role = 'staff_gudang' LIMIT 1",
-        [id]
-    );
+export async function deleteStaffAction(userId) {
+    try {
+        const session = await ensureAdmin();
+        const targetId = Number(userId);
 
-    if (staffRes.rows.length === 0) {
-        return { error: 'Data akun Staff Gudang tidak ditemukan.' };
-    }
+        if (!targetId) {
+        return { error: 'ID pengguna tidak valid.' };
+        }
 
-    const trxRes = await query(
-        'SELECT COUNT(*)::int AS total FROM transactions WHERE created_by = $1',
-        [id]
-    );
+        if (session?.id && Number(session.id) === targetId) {
+        return { error: 'Anda tidak dapat menghapus akun Anda sendiri.' };
+        }
 
-    if (trxRes.rows[0].total > 0) {
+        const userRes = await db.query(
+        'SELECT id, name, role, status FROM users WHERE id = $1',
+        [targetId]
+        );
+
+        if (userRes.rows.length === 0) {
+        return { error: 'Akun pengguna tidak ditemukan.' };
+        }
+
+        const targetUser = userRes.rows[0];
+
+        if (!['staff_gudang', 'warehouse_manager'].includes(targetUser.role)) {
+        return { error: 'Hanya akun Staff Gudang dan Warehouse Manager yang dapat dikelola di halaman ini.' };
+        }
+
+        const trxRef = await db.query(
+        'SELECT COUNT(*)::int AS total FROM transactions WHERE created_by = $1 OR approved_by = $1',
+        [targetId]
+        );
+        const poRef = await db.query(
+        'SELECT COUNT(*)::int AS total FROM restock_orders WHERE created_by = $1',
+        [targetId]
+        );
+
+        const hasHistory = trxRef.rows[0].total > 0 || poRef.rows[0].total > 0;
+
+        if (hasHistory) {
+        await db.query(
+            `UPDATE users
+            SET status = 'Terminated',
+                termination_reason = 'Dinonaktifkan oleh Administrator'
+            WHERE id = $1`,
+            [targetId]
+        );
+
+        revalidatePath('/dashboard/staff');
+        revalidatePath('/dashboard');
+
         return {
-        error:
-            'Akun Staff ini tidak dapat dihapus karena sudah tercatat pada riwayat transaksi gudang.',
+            success: `Akun "${targetUser.name}" memiliki riwayat transaksi/PO sehingga statusnya dinonaktifkan (Terminated) agar jejak audit tetap aman.`,
         };
+        }
+
+        await db.query('DELETE FROM users WHERE id = $1', [targetId]);
+
+        revalidatePath('/dashboard/staff');
+        revalidatePath('/dashboard');
+
+        return { success: `Akun "${targetUser.name}" berhasil dihapus permanen.` };
+    } catch (error) {
+        return { error: error.message || 'Gagal menghapus atau menonaktifkan akun.' };
     }
+}
 
-    await query("DELETE FROM users WHERE id = $1 AND role = 'staff_gudang'", [id]);
+export async function reactivateStaffAction(userId) {
+    try {
+        await ensureAdmin();
+        const targetId = Number(userId);
 
-    revalidatePath('/dashboard/staff');
-    revalidatePath('/dashboard');
+        if (!targetId) {
+        return { error: 'ID pengguna tidak valid.' };
+        }
 
-    return {
-        success: `Akun Staff ${staffRes.rows[0].name} berhasil dihapus.`,
-    };
+        const userRes = await db.query(
+        'SELECT id, name, role FROM users WHERE id = $1',
+        [targetId]
+        );
+
+        if (userRes.rows.length === 0) {
+        return { error: 'Akun pengguna tidak ditemukan.' };
+        }
+
+        const targetUser = userRes.rows[0];
+        if (!['staff_gudang', 'warehouse_manager'].includes(targetUser.role)) {
+        return { error: 'Role pengguna tidak valid untuk aktivasi di halaman ini.' };
+        }
+
+        await db.query(
+        `UPDATE users
+        SET status = 'Approved',
+            termination_reason = NULL
+        WHERE id = $1`,
+        [targetId]
+        );
+
+        revalidatePath('/dashboard/staff');
+        revalidatePath('/dashboard');
+
+        return { success: `Akses akun "${targetUser.name}" berhasil diaktifkan kembali.` };
+    } catch (error) {
+        return { error: error.message || 'Gagal mengaktifkan kembali akun.' };
+    }
 }
