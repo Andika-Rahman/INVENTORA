@@ -10,7 +10,6 @@ import {
     CheckCircle2,
     XCircle,
     Clock,
-    PackageCheck,
     Star,
     AlertCircle,
     Building2,
@@ -40,9 +39,9 @@ const timelineSteps = [
     'In Transit',
     'Received',
     'Pesanan Diperiksa',
-    ];
+];
 
-    export default function RestockManager({
+export default function RestockManager({
     orders,
     suppliers,
     products,
@@ -285,8 +284,10 @@ const timelineSteps = [
         <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-            <h1 className="text-2xl font-bold text-white">Restock Management (Purchase Order)</h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                Restock Management (Purchase Order)
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
                 {isSupplier
                 ? 'Konfirmasi ketersediaan stok, kirim barang (In Transit), dan pantau progres pesanan restock'
                 : isStaffGudang
@@ -301,7 +302,7 @@ const timelineSteps = [
                 <button
                 type="button"
                 onClick={() => openNewPoFromOrder(null)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-sm shadow-red-600/20 transition cursor-pointer"
                 >
                 <Plus className="w-4 h-4" />
                 <span>Buat Restock Order (PO)</span>
@@ -311,15 +312,15 @@ const timelineSteps = [
         </div>
 
         {actionMessage.error && (
-            <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300">
+            <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-xs text-red-700 dark:text-red-300">
             <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
                 <span>{actionMessage.error}</span>
             </div>
             <button
                 type="button"
                 onClick={() => setActionMessage({ error: '', success: '' })}
-                className="text-red-400 hover:text-white cursor-pointer"
+                className="font-semibold text-red-700 dark:text-red-300 hover:underline cursor-pointer"
             >
                 Tutup
             </button>
@@ -327,22 +328,22 @@ const timelineSteps = [
         )}
 
         {actionMessage.success && (
-            <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300">
+            <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300">
             <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>{actionMessage.success}</span>
             </div>
             <button
                 type="button"
                 onClick={() => setActionMessage({ error: '', success: '' })}
-                className="text-emerald-400 hover:text-white cursor-pointer"
+                className="font-semibold text-emerald-700 dark:text-emerald-300 hover:underline cursor-pointer"
             >
                 Tutup
             </button>
             </div>
         )}
 
-        <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-4">
+        <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-zinc-800 pb-4">
             {filterTabs.map((tab) => (
             <button
                 key={tab}
@@ -350,8 +351,8 @@ const timelineSteps = [
                 onClick={() => setStatusFilter(tab)}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                 statusFilter === tab
-                    ? 'bg-blue-600 text-white border-blue-500'
-                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                    ? 'bg-red-600 text-white border-red-600 shadow-xs'
+                    : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-800 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 dark:hover:bg-zinc-800 dark:hover:text-white'
                 }`}
             >
                 {tab === 'ALL' ? 'Semua PO' : tab}
@@ -360,7 +361,7 @@ const timelineSteps = [
         </div>
 
         {filteredOrders.length === 0 ? (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center text-sm text-slate-400">
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-10 text-center text-sm text-slate-500 dark:text-zinc-400">
             Tidak ada data Restock Order untuk status ini.
             </div>
         ) : (
@@ -373,361 +374,378 @@ const timelineSteps = [
                 return (
                 <div
                     key={order.id}
-                    className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-5"
+                    className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-xs"
                 >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-                    <div className="space-y-1">
+                    <div className="h-1 w-full bg-linear-to-r from-red-600 via-slate-200 to-emerald-600 dark:via-zinc-700" />
+
+                    <div className="p-5 sm:p-6 space-y-5">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
+                        <div className="space-y-1.5">
                         <div className="flex flex-wrap items-center gap-2.5">
-                        <span className="font-mono font-bold text-base text-white">
+                            <span className="font-mono font-bold text-base text-slate-900 dark:text-white">
                             {order.po_number}
-                        </span>
-                        <span
-                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
-                            order.status === 'Pesanan Diperiksa'
-                                ? 'bg-purple-500/10 text-purple-300 border-purple-500/30'
-                                : order.status === 'Received'
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                : order.status === 'Refund Diajukan'
-                                ? 'bg-orange-500/10 text-orange-300 border-orange-500/30'
-                                : order.status === 'Rejected'
-                                ? 'bg-red-500/10 text-red-400 border-red-500/30'
-                                : order.status === 'In Transit'
-                                ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
-                                : order.status === 'Confirmed'
-                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-                                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                            }`}
-                        >
-                            {order.status}
-                        </span>
-                        {order.latest_trx_status === 'Approved' && (
-                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                            Laporan Masuk Disetujui & Stok Bertambah
                             </span>
-                        )}
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
-                        <span className="inline-flex items-center gap-1.5">
-                            <Building2 className="w-3.5 h-3.5 text-slate-500" />
-                            Supplier:{' '}
-                            <strong className="text-slate-200">
-                            {order.supplier_company || order.supplier_name}
-                            </strong>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                            Order: {formatDate(order.order_date)} • Est. Tiba:{' '}
-                            <strong className="text-slate-200">
-                            {formatDate(order.expected_delivery_date)}
-                            </strong>
-                        </span>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                        {isSupplier && order.status === 'Pending' && (
-                        <>
-                            <button
-                            type="button"
-                            disabled={busyOrderId === order.id}
-                            onClick={() => handleSupplierConfirm(order.id)}
-                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            <span
+                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                                order.status === 'Pesanan Diperiksa'
+                                ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30'
+                                : order.status === 'Received'
+                                ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30'
+                                : order.status === 'Refund Diajukan'
+                                ? 'bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500/30'
+                                : order.status === 'Rejected'
+                                ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 border-red-200 dark:border-red-500/30'
+                                : order.status === 'In Transit'
+                                ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30'
+                                : order.status === 'Confirmed'
+                                ? 'bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 border-slate-300 dark:border-zinc-700'
+                                : 'bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500/30'
+                            }`}
                             >
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span>Confirm Pesanan</span>
+                            {order.status}
+                            </span>
+                            {order.latest_trx_status === 'Approved' && (
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-600 text-white">
+                                Laporan Masuk Disetujui & Stok Bertambah
+                            </span>
+                            )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-zinc-400">
+                            <span className="inline-flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+                            Supplier:{' '}
+                            <strong className="text-slate-800 dark:text-zinc-200">
+                                {order.supplier_company || order.supplier_name}
+                            </strong>
+                            </span>
+                            <span className="inline-flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+                            Order: {formatDate(order.order_date)} • Est. Tiba:{' '}
+                            <strong className="text-slate-800 dark:text-zinc-200">
+                                {formatDate(order.expected_delivery_date)}
+                            </strong>
+                            </span>
+                        </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                        {isSupplier && order.status === 'Pending' && (
+                            <>
+                            <button
+                                type="button"
+                                disabled={busyOrderId === order.id}
+                                onClick={() => handleSupplierConfirm(order.id)}
+                                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            >
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span>Confirm Pesanan</span>
                             </button>
                             <button
-                            type="button"
-                            disabled={busyOrderId === order.id}
-                            onClick={() => {
+                                type="button"
+                                disabled={busyOrderId === order.id}
+                                onClick={() => {
                                 setRejectReason('');
                                 setRejectModalOrder(order);
-                            }}
-                            className="px-3.5 py-2 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                                }}
+                                className="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/30 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                             >
-                            <XCircle className="w-4 h-4" />
-                            <span>Reject</span>
+                                <XCircle className="w-4 h-4" />
+                                <span>Reject</span>
                             </button>
-                        </>
+                            </>
                         )}
 
                         {isSupplier && order.status === 'Confirmed' && (
-                        <button
+                            <button
                             type="button"
                             disabled={busyOrderId === order.id}
                             onClick={() => handleSupplierShip(order.id)}
-                            className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
-                        >
+                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            >
                             <Truck className="w-4 h-4" />
                             <span>Kirim Barang (In Transit)</span>
-                        </button>
+                            </button>
                         )}
 
                         {canConfirmArrival && order.status === 'In Transit' && (
-                        <button
+                            <button
                             type="button"
                             onClick={() => setArrivalModalOrder(order)}
-                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
-                        >
+                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            >
                             <Camera className="w-4 h-4" />
                             <span>Tandai Tiba & Kirim Foto Dokumentasi</span>
-                        </button>
+                            </button>
                         )}
 
                         {canCreateAndManage && order.status === 'Received' && (
-                        <>
+                            <>
                             <button
-                            type="button"
-                            onClick={() => {
+                                type="button"
+                                onClick={() => {
                                 setInspectNotes('');
                                 setInspectModalOrder(order);
-                            }}
-                            className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                                }}
+                                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                             >
-                            <ClipboardCheck className="w-4 h-4" />
-                            <span>Konfirmasi Cek ke Staff (Pesanan Diperiksa)</span>
+                                <ClipboardCheck className="w-4 h-4" />
+                                <span>Konfirmasi Cek ke Staff (Pesanan Diperiksa)</span>
                             </button>
                             <button
-                            type="button"
-                            onClick={() => {
+                                type="button"
+                                onClick={() => {
                                 setRefundReason(order.latest_trx_rejection || '');
                                 setRefundModalOrder(order);
-                            }}
-                            className="px-3.5 py-2 rounded-xl bg-orange-600/20 hover:bg-orange-600 text-orange-300 hover:text-white border border-orange-500/30 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                                }}
+                                className="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                             >
-                            <RotateCcw className="w-4 h-4" />
-                            <span>Tolak & Ajukan Refund</span>
+                                <RotateCcw className="w-4 h-4" />
+                                <span>Tolak & Ajukan Refund</span>
                             </button>
-                        </>
+                            </>
                         )}
 
                         {isStaffGudang &&
-                        order.status === 'Pesanan Diperiksa' &&
-                        order.latest_trx_status !== 'Approved' &&
-                        order.latest_trx_status !== 'Pending' && (
+                            order.status === 'Pesanan Diperiksa' &&
+                            order.latest_trx_status !== 'Approved' &&
+                            order.latest_trx_status !== 'Pending' && (
                             <Link
-                            href={`/dashboard/transactions?open=IN&po_id=${order.id}`}
-                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-1.5"
+                                href={`/dashboard/transactions?open=IN&po_id=${order.id}`}
+                                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1.5"
                             >
-                            <FilePlus2 className="w-4 h-4" />
-                            <span>Buat Laporan Barang Masuk</span>
+                                <FilePlus2 className="w-4 h-4" />
+                                <span>Buat Laporan Barang Masuk</span>
                             </Link>
+                            )}
+
+                        {canCreateAndManage &&
+                            order.status === 'Pesanan Diperiksa' &&
+                            order.latest_trx_status !== 'Approved' && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                setRefundReason(order.latest_trx_rejection || '');
+                                setRefundModalOrder(order);
+                                }}
+                                className="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                                <span>Ajukan Refund & Pesan Ulang</span>
+                            </button>
+                            )}
+
+                        {canCreateAndManage && isRefundRequested && (
+                            <button
+                            type="button"
+                            onClick={() => openNewPoFromOrder(order)}
+                            className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            >
+                            <Plus className="w-4 h-4" />
+                            <span>Buat Pesanan Baru (PO)</span>
+                            </button>
                         )}
 
                         {canCreateAndManage &&
-                        order.status === 'Pesanan Diperiksa' &&
-                        order.latest_trx_status !== 'Approved' && (
+                            ['Received', 'Pesanan Diperiksa'].includes(order.status) &&
+                            !order.supplier_rating && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                setSelectedRating(5);
+                                setFeedbackText('');
+                                setRatingModalOrder(order);
+                                }}
+                                className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                            >
+                                <Star className="w-4 h-4" />
+                                <span>Beri Rating Supplier</span>
+                            </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {isRejected ? (
+                        <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-xs text-red-700 dark:text-red-300 flex items-start gap-2.5">
+                        <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-bold">Pesanan Ditolak oleh Supplier</p>
+                            <p className="mt-0.5">
+                            Alasan: {order.status_notes || 'Tidak ada catatan alasan.'}
+                            </p>
+                        </div>
+                        </div>
+                    ) : isRefundRequested ? (
+                        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-xs text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-start gap-2.5">
+                            <RotateCcw className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
+                            <div>
+                            <p className="font-bold text-amber-900 dark:text-amber-300">
+                                Pesanan Tidak Sesuai — Refund Diajukan oleh Manager
+                            </p>
+                            <p className="mt-0.5">
+                                Alasan Refund: {order.refund_reason || 'Barang tidak sesuai permintaan.'}
+                            </p>
+                            </div>
+                        </div>
+                        {canCreateAndManage && (
+                            <button
+                            type="button"
+                            onClick={() => openNewPoFromOrder(order)}
+                            className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold shrink-0 cursor-pointer"
+                            >
+                            Buat Pesanan Baru
+                            </button>
+                        )}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        {timelineSteps.map((step, index) => {
+                            const isCompleted = index <= currentStepIndex;
+                            const isCurrent = index === currentStepIndex;
+
+                            return (
+                            <div
+                                key={step}
+                                className={`px-3 py-2 rounded-xl border text-xs flex items-center gap-2 ${
+                                isCurrent
+                                    ? 'bg-emerald-100/80 dark:bg-emerald-500/20 border-emerald-400 dark:border-emerald-500/50 text-emerald-900 dark:text-emerald-200 font-bold'
+                                    : isCompleted
+                                    ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-semibold'
+                                    : 'bg-slate-50 dark:bg-zinc-950/60 border-slate-200 dark:border-zinc-800 text-slate-400 dark:text-zinc-500'
+                                }`}
+                            >
+                                {isCompleted ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                ) : (
+                                <Clock className="w-4 h-4 text-slate-400 dark:text-zinc-600 shrink-0" />
+                                )}
+                                <span>
+                                {index + 1}. {step}
+                                </span>
+                            </div>
+                            );
+                        })}
+                        </div>
+                    )}
+
+                    {order.arrival_photo_url && (
+                        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2.5">
+                            <Camera className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <div>
+                            <p className="font-semibold text-slate-900 dark:text-zinc-200">
+                                Foto Dokumentasi Kedatangan Barang Terlampir
+                            </p>
+                            <p className="text-slate-500 dark:text-zinc-400 font-mono text-[11px]">
+                                {order.arrival_photo_url}
+                            </p>
+                            </div>
+                        </div>
+                        <a
+                            href={order.arrival_photo_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-emerald-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-emerald-700 dark:text-emerald-300 border border-slate-200 dark:border-zinc-700 font-semibold shrink-0 transition"
+                        >
+                            <span>Lihat Foto Dokumentasi</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                        </div>
+                    )}
+
+                    {order.inspection_notes && (
+                        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-xs text-slate-700 dark:text-zinc-200 flex items-start gap-2.5">
+                        <ClipboardCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-bold text-emerald-800 dark:text-emerald-300">
+                            Instruksi Pemeriksaan dari Manager:
+                            </p>
+                            <p className="mt-0.5 text-slate-700 dark:text-zinc-200">
+                            {order.inspection_notes}
+                            </p>
+                        </div>
+                        </div>
+                    )}
+
+                    {order.latest_trx_rejection && !isRefundRequested && (
+                        <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-xs text-red-800 dark:text-red-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <p className="font-bold text-red-700 dark:text-red-300">
+                            Laporan Barang Masuk Ditolak Manager (Tidak Sesuai Permintaan)
+                            </p>
+                            <p className="mt-0.5">Alasan: {order.latest_trx_rejection}</p>
+                        </div>
+                        {canCreateAndManage && (
                             <button
                             type="button"
                             onClick={() => {
                                 setRefundReason(order.latest_trx_rejection || '');
                                 setRefundModalOrder(order);
                             }}
-                            className="px-3.5 py-2 rounded-xl bg-orange-600/20 hover:bg-orange-600 text-orange-300 hover:text-white border border-orange-500/30 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold shrink-0 cursor-pointer"
                             >
-                            <RotateCcw className="w-4 h-4" />
-                            <span>Ajukan Refund & Pesan Ulang</span>
-                            </button>
-                        )}
-
-                        {canCreateAndManage && isRefundRequested && (
-                        <button
-                            type="button"
-                            onClick={() => openNewPoFromOrder(order)}
-                            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
-                        >
-                            <Plus className="w-4 h-4" />
-                            <span>Buat Pesanan Baru (PO)</span>
-                        </button>
-                        )}
-
-                        {canCreateAndManage &&
-                        ['Received', 'Pesanan Diperiksa'].includes(order.status) &&
-                        !order.supplier_rating && (
-                            <button
-                            type="button"
-                            onClick={() => {
-                                setSelectedRating(5);
-                                setFeedbackText('');
-                                setRatingModalOrder(order);
-                            }}
-                            className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                            >
-                            <Star className="w-4 h-4" />
-                            <span>Beri Rating Supplier</span>
-                            </button>
-                        )}
-                    </div>
-                    </div>
-
-                    {isRejected ? (
-                    <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300 flex items-start gap-2.5">
-                        <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                        <div>
-                        <p className="font-bold">Pesanan Ditolak oleh Supplier</p>
-                        <p className="mt-0.5">
-                            Alasan: {order.status_notes || 'Tidak ada catatan alasan.'}
-                        </p>
-                        </div>
-                    </div>
-                    ) : isRefundRequested ? (
-                    <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/30 text-xs text-orange-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-start gap-2.5">
-                        <RotateCcw className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                        <div>
-                            <p className="font-bold text-orange-300">
-                            Pesanan Tidak Sesuai — Refund Diajukan oleh Manager
-                            </p>
-                            <p className="mt-0.5">
-                            Alasan Refund: {order.refund_reason || 'Barang tidak sesuai permintaan.'}
-                            </p>
-                        </div>
-                        </div>
-                        {canCreateAndManage && (
-                        <button
-                            type="button"
-                            onClick={() => openNewPoFromOrder(order)}
-                            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shrink-0 cursor-pointer"
-                        >
-                            Buat Pesanan Baru
-                        </button>
-                        )}
-                    </div>
-                    ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                        {timelineSteps.map((step, index) => {
-                        const isCompleted = index <= currentStepIndex;
-                        return (
-                            <div
-                            key={step}
-                            className={`px-3 py-2 rounded-xl border text-xs flex items-center gap-2 ${
-                                isCompleted
-                                ? 'bg-blue-600/15 border-blue-500/40 text-blue-300 font-semibold'
-                                : 'bg-slate-950/60 border-slate-800 text-slate-500'
-                            }`}
-                            >
-                            {isCompleted ? (
-                                <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
-                            ) : (
-                                <Clock className="w-4 h-4 text-slate-600 shrink-0" />
-                            )}
-                            <span>
-                                {index + 1}. {step}
-                            </span>
-                            </div>
-                        );
-                        })}
-                    </div>
-                    )}
-
-                    {order.arrival_photo_url && (
-                    <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2.5">
-                        <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <div>
-                            <p className="font-semibold text-slate-200">
-                            Foto Dokumentasi Kedatangan Barang Terlampir
-                            </p>
-                            <p className="text-slate-400 font-mono text-[11px]">
-                            {order.arrival_photo_url}
-                            </p>
-                        </div>
-                        </div>
-                        <a
-                        href={order.arrival_photo_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-300 font-semibold shrink-0"
-                        >
-                        <span>Lihat Foto Dokumentasi</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                    </div>
-                    )}
-
-                    {order.inspection_notes && (
-                    <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs text-purple-200 flex items-start gap-2.5">
-                        <ClipboardCheck className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                        <div>
-                        <p className="font-bold text-purple-300">
-                            Instruksi Pemeriksaan dari Manager:
-                        </p>
-                        <p className="mt-0.5">{order.inspection_notes}</p>
-                        </div>
-                    </div>
-                    )}
-
-                    {order.latest_trx_rejection && !isRefundRequested && (
-                    <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                        <p className="font-bold text-red-300">
-                            Laporan Barang Masuk Ditolak Manager (Tidak Sesuai Permintaan)
-                        </p>
-                        <p className="mt-0.5">Alasan: {order.latest_trx_rejection}</p>
-                        </div>
-                        {canCreateAndManage && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                            setRefundReason(order.latest_trx_rejection || '');
-                            setRefundModalOrder(order);
-                            }}
-                            className="px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold shrink-0 cursor-pointer"
-                        >
                             Ajukan Refund & Buat Pesanan Baru
-                        </button>
+                            </button>
                         )}
-                    </div>
+                        </div>
                     )}
 
-                    <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    <div className="bg-slate-50 dark:bg-zinc-950/70 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 space-y-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
                         Daftar Komponen Dipesan ({order.items.length} Item)
-                    </p>
-                    <div className="divide-y divide-slate-800/80 text-xs">
+                        </p>
+                        <div className="divide-y divide-slate-200/80 dark:divide-zinc-800/80 text-xs">
                         {order.items.map((item) => (
-                        <div
+                            <div
                             key={item.id}
                             className="py-2 flex items-center justify-between gap-3"
-                        >
+                            >
                             <div>
-                            <span className="font-mono text-blue-400 mr-2">{item.sku}</span>
-                            <span className="text-slate-200 font-medium">{item.product_name}</span>
+                                <span className="font-mono font-semibold text-emerald-700 dark:text-emerald-400 mr-2">
+                                {item.sku}
+                                </span>
+                                <span className="text-slate-800 dark:text-zinc-200 font-medium">
+                                {item.product_name}
+                                </span>
                             </div>
-                            <span className="font-bold text-white shrink-0">
-                            {item.quantity} {item.unit}
+                            <span className="font-bold text-slate-900 dark:text-white shrink-0">
+                                {item.quantity} {item.unit}
                             </span>
-                        </div>
+                            </div>
                         ))}
-                    </div>
+                        </div>
                     </div>
 
                     {order.notes && (
-                    <p className="text-xs text-slate-400">
-                        <strong className="text-slate-300">Catatan PO:</strong> {order.notes}
-                    </p>
+                        <p className="text-xs text-slate-600 dark:text-zinc-400">
+                        <strong className="text-slate-800 dark:text-zinc-300">Catatan PO:</strong>{' '}
+                        {order.notes}
+                        </p>
                     )}
 
                     {['Received', 'Pesanan Diperiksa'].includes(order.status) && (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-800 text-xs">
-                        <span className="text-emerald-400">
-                        {order.status === 'Received'
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-zinc-800 text-xs">
+                        <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                            {order.status === 'Received'
                             ? 'Foto dokumentasi kedatangan diterima. Manager dapat mengonfirmasi ke Staff untuk pemeriksaan fisik (Pesanan Diperiksa).'
                             : 'Status Pesanan Diperiksa: Staff Gudang mengecek fisik barang dan membuat Laporan Barang Masuk untuk konfirmasi akhir Manager.'}
                         </span>
 
                         {order.supplier_rating && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 shrink-0">
-                            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 shrink-0">
+                            <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
                             <span className="font-bold">{order.supplier_rating}/5</span>
                             {order.supplier_feedback && (
-                            <span className="text-slate-300">• "{order.supplier_feedback}"</span>
+                                <span className="text-slate-700 dark:text-zinc-300">
+                                • &quot;{order.supplier_feedback}&quot;
+                                </span>
                             )}
-                        </div>
+                            </div>
                         )}
-                    </div>
+                        </div>
                     )}
+                    </div>
                 </div>
                 );
             })}
@@ -735,200 +753,211 @@ const timelineSteps = [
         )}
 
         {createModalOpen && canCreateAndManage && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">
-            <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl my-8">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto">
+            <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-2xl my-8">
+                <div className="h-1.5 w-full bg-linear-to-r from-red-600 via-white to-emerald-600" />
+
+                <div className="p-6">
                 <div className="flex items-center justify-between mb-5">
-                <div>
-                    <h2 className="text-lg font-bold text-white">Buat Restock Order (PO)</h2>
-                    <p className="text-xs text-slate-400">
-                    Nomor PO akan dibuat otomatis saat pesanan dikirim ke Supplier
+                    <div>
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                        Buat Restock Order (PO)
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400">
+                        Nomor PO akan dibuat otomatis saat pesanan dikirim ke Supplier
                     </p>
-                </div>
-                <button
+                    </div>
+                    <button
                     type="button"
                     onClick={() => setCreateModalOpen(false)}
-                    className="text-slate-400 hover:text-white cursor-pointer"
-                >
+                    className="text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+                    >
                     <X className="w-5 h-5" />
-                </button>
+                    </button>
                 </div>
 
                 {createState?.error && (
-                <div className="mb-4 flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300">
-                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                    <div className="mb-4 flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-xs text-red-700 dark:text-red-300">
+                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
                     <span>{createState.error}</span>
-                </div>
+                    </div>
                 )}
 
                 {createState?.success && (
-                <div className="mb-4 flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div className="mb-4 flex items-center gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>{createState.success}</span>
-                </div>
+                    </div>
                 )}
 
                 <form action={createFormAction} className="space-y-4">
-                <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                    Pilih Supplier (Approved)
+                    <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                        Pilih Supplier (Approved)
                     </label>
                     <select
-                    name="supplier_id"
-                    required
-                    value={selectedSupplierId}
-                    onChange={(e) => setSelectedSupplierId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                        name="supplier_id"
+                        required
+                        value={selectedSupplierId}
+                        onChange={(e) => setSelectedSupplierId(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-red-500"
                     >
-                    <option value="">-- Pilih Mitra Supplier --</option>
-                    {suppliers.map((sup) => (
+                        <option value="">-- Pilih Mitra Supplier --</option>
+                        {suppliers.map((sup) => (
                         <option key={sup.id} value={sup.id}>
-                        {sup.company_name || sup.name} ({sup.name})
+                            {sup.company_name || sup.name} ({sup.name})
                         </option>
-                    ))}
+                        ))}
                     </select>
-                </div>
+                    </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
                         Tanggal Order
-                    </label>
-                    <input
+                        </label>
+                        <input
                         type="date"
                         name="order_date"
                         required
                         defaultValue={todayStr}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
-                    />
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-red-500"
+                        />
                     </div>
 
                     <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
                         Estimasi Tanggal Pengiriman
-                    </label>
-                    <input
+                        </label>
+                        <input
                         type="date"
                         name="expected_delivery_date"
                         required
                         defaultValue={todayStr}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
-                    />
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-red-500"
+                        />
                     </div>
-                </div>
+                    </div>
 
-                <div className="space-y-2.5">
+                    <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-400">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                         Daftar Komponen yang Direstock
-                    </label>
-                    <button
+                        </label>
+                        <button
                         type="button"
                         onClick={addItemRow}
-                        className="text-xs font-semibold text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 cursor-pointer"
-                    >
+                        className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                        >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Tambah Baris Produk</span>
-                    </button>
+                        </button>
                     </div>
 
                     {orderItems.map((row, index) => (
-                    <div key={index} className="flex items-center gap-2">
+                        <div key={index} className="flex items-center gap-2">
                         <select
-                        name="product_id"
-                        required
-                        value={row.productId}
-                        onChange={(e) => updateItemRow(index, 'productId', e.target.value)}
-                        className="flex-1 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+                            name="product_id"
+                            required
+                            value={row.productId}
+                            onChange={(e) => updateItemRow(index, 'productId', e.target.value)}
+                            className="flex-1 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-red-500"
                         >
-                        <option value="">-- Pilih Produk Komponen --</option>
-                        {products.map((prod) => (
+                            <option value="">-- Pilih Produk Komponen --</option>
+                            {products.map((prod) => (
                             <option key={prod.id} value={prod.id}>
-                            [{prod.sku}] {prod.name} (Stok: {prod.stock} {prod.unit})
+                                [{prod.sku}] {prod.name} (Stok: {prod.stock} {prod.unit})
                             </option>
-                        ))}
+                            ))}
                         </select>
 
                         <input
-                        type="number"
-                        name="quantity"
-                        min="1"
-                        required
-                        value={row.quantity}
-                        onChange={(e) => updateItemRow(index, 'quantity', e.target.value)}
-                        placeholder="Qty"
-                        className="w-24 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+                            type="number"
+                            name="quantity"
+                            min="1"
+                            required
+                            value={row.quantity}
+                            onChange={(e) => updateItemRow(index, 'quantity', e.target.value)}
+                            placeholder="Qty"
+                            className="w-24 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-red-500"
                         />
 
                         {orderItems.length > 1 && (
-                        <button
+                            <button
                             type="button"
                             onClick={() => removeItemRow(index)}
-                            className="p-2.5 rounded-xl bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white cursor-pointer"
-                        >
+                            className="p-2.5 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/30 cursor-pointer"
+                            >
                             <Trash2 className="w-4 h-4" />
-                        </button>
+                            </button>
                         )}
-                    </div>
+                        </div>
                     ))}
-                </div>
+                    </div>
 
-                <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                    Catatan Pesanan
+                    <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                        Catatan Pesanan
                     </label>
                     <textarea
-                    name="notes"
-                    rows={2}
-                    value={orderNotes}
-                    onChange={(e) => setOrderNotes(e.target.value)}
-                    placeholder="Instruksi pengiriman atau prioritas restock"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                        name="notes"
+                        rows={2}
+                        value={orderNotes}
+                        onChange={(e) => setOrderNotes(e.target.value)}
+                        placeholder="Instruksi pengiriman atau prioritas restock"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-red-500"
                     />
-                </div>
+                    </div>
 
-                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-zinc-800">
                     <button
-                    type="button"
-                    onClick={() => setCreateModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 cursor-pointer"
+                        type="button"
+                        onClick={() => setCreateModalOpen(false)}
+                        className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-semibold cursor-pointer"
                     >
-                    Batal
+                        Batal
                     </button>
                     <button
-                    type="submit"
-                    disabled={isCreating}
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-xs font-semibold cursor-pointer"
+                        type="submit"
+                        disabled={isCreating}
+                        className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-semibold cursor-pointer"
                     >
-                    {isCreating ? 'Mengirim PO...' : 'Kirim Restock Order'}
+                        {isCreating ? 'Mengirim PO...' : 'Kirim Restock Order'}
                     </button>
-                </div>
+                    </div>
                 </form>
+                </div>
             </div>
             </div>
         )}
 
         {arrivalModalOrder && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
-            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+            <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4">
                 <div className="flex items-center justify-between">
-                <h3 className="font-bold text-white">Konfirmasi Kedatangan & Foto Dokumentasi</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white">
+                    Konfirmasi Kedatangan & Foto Dokumentasi
+                </h3>
                 <button
                     type="button"
                     onClick={() => setArrivalModalOrder(null)}
-                    className="text-slate-400 hover:text-white cursor-pointer"
+                    className="text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
                 >
                     <X className="w-5 h-5" />
                 </button>
                 </div>
 
-                <p className="text-xs text-slate-400">
-                Nomor PO: <strong className="text-white">{arrivalModalOrder.po_number}</strong>.
-                Lampirkan foto bukti paket/barang tiba untuk dikonfirmasi ke Manager.
+                <p className="text-xs text-slate-600 dark:text-zinc-400">
+                Nomor PO:{' '}
+                <strong className="text-slate-900 dark:text-white">
+                    {arrivalModalOrder.po_number}
+                </strong>
+                . Lampirkan foto bukti paket/barang tiba untuk dikonfirmasi ke Manager.
                 </p>
 
                 {arrivalState?.error && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300">
-                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-xs text-red-700 dark:text-red-300">
+                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
                     <span>{arrivalState.error}</span>
                 </div>
                 )}
@@ -937,38 +966,38 @@ const timelineSteps = [
                 <input type="hidden" name="order_id" value={arrivalModalOrder.id} />
 
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
                     Upload Foto Dokumentasi (JPG/PNG/WEBP)
                     </label>
                     <input
                     type="file"
                     name="arrival_photo_file"
                     accept="image/jpeg,image/png,image/webp"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:text-xs file:font-semibold"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:text-white file:text-xs file:font-semibold"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
                     Atau Masukkan Link / Path Foto Dokumentasi
                     </label>
                     <input
                     type="text"
                     name="arrival_photo_url"
                     placeholder="https://... atau /uploads/restocks/foto-paket.jpg"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-emerald-500"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
                     Catatan Kedatangan (Opsional)
                     </label>
                     <textarea
                     name="arrival_notes"
                     rows={2}
                     placeholder="Contoh: 2 kardus diterima di area bongkar muat gudang"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-xs focus:outline-none focus:border-emerald-500"
                     />
                 </div>
 
@@ -976,14 +1005,14 @@ const timelineSteps = [
                     <button
                     type="button"
                     onClick={() => setArrivalModalOrder(null)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-semibold cursor-pointer"
                     >
                     Batal
                     </button>
                     <button
                     type="submit"
                     disabled={isSubmittingArrival}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer"
                     >
                     {isSubmittingArrival ? 'Mengirim...' : 'Kirim Dokumentasi & Tandai Received'}
                     </button>
@@ -994,30 +1023,38 @@ const timelineSteps = [
         )}
 
         {inspectModalOrder && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
             <form
                 onSubmit={handleRequestInspectionSubmit}
-                className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4"
+                className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4"
             >
                 <div className="flex items-center justify-between">
-                <h3 className="font-bold text-white">Instruksi Pemeriksaan ke Staff</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white">
+                    Instruksi Pemeriksaan ke Staff
+                </h3>
                 <button
                     type="button"
                     onClick={() => setInspectModalOrder(null)}
-                    className="text-slate-400 hover:text-white cursor-pointer"
+                    className="text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
                 >
                     <X className="w-5 h-5" />
                 </button>
                 </div>
 
-                <p className="text-xs text-slate-400">
-                Nomor PO: <strong className="text-white">{inspectModalOrder.po_number}</strong>.
-                Status akan berubah menjadi <strong className="text-purple-300">Pesanan Diperiksa</strong>{' '}
+                <p className="text-xs text-slate-600 dark:text-zinc-400">
+                Nomor PO:{' '}
+                <strong className="text-slate-900 dark:text-white">
+                    {inspectModalOrder.po_number}
+                </strong>
+                . Status akan berubah menjadi{' '}
+                <strong className="text-emerald-700 dark:text-emerald-300">
+                    Pesanan Diperiksa
+                </strong>{' '}
                 agar Staff Gudang mengecek fisik barang dan membuat laporan masuk.
                 </p>
 
                 <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
                     Catatan Pemeriksaan untuk Staff
                 </label>
                 <textarea
@@ -1025,7 +1062,7 @@ const timelineSteps = [
                     value={inspectNotes}
                     onChange={(e) => setInspectNotes(e.target.value)}
                     placeholder="Contoh: Pastikan nomor seri komponen sesuai PO dan cek kondisi segel"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-emerald-500"
                 />
                 </div>
 
@@ -1033,14 +1070,14 @@ const timelineSteps = [
                 <button
                     type="button"
                     onClick={() => setInspectModalOrder(null)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-semibold cursor-pointer"
                 >
                     Batal
                 </button>
                 <button
                     type="submit"
                     disabled={busyOrderId === inspectModalOrder.id}
-                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer"
                 >
                     Konfirmasi ke Staff
                 </button>
@@ -1050,30 +1087,36 @@ const timelineSteps = [
         )}
 
         {refundModalOrder && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
             <form
                 onSubmit={handleRefundSubmit}
-                className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4"
+                className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4"
             >
                 <div className="flex items-center justify-between">
-                <h3 className="font-bold text-white">Ajukan Refund & Buat Pesanan Baru</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white">
+                    Ajukan Refund & Buat Pesanan Baru
+                </h3>
                 <button
                     type="button"
                     onClick={() => setRefundModalOrder(null)}
-                    className="text-slate-400 hover:text-white cursor-pointer"
+                    className="text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
                 >
                     <X className="w-5 h-5" />
                 </button>
                 </div>
 
-                <p className="text-xs text-slate-400">
-                Pesanan <strong className="text-white">{refundModalOrder.po_number}</strong> tidak
-                sesuai permintaan. Setelah refund diajukan, Anda akan langsung diarahkan untuk
-                membuat <strong className="text-blue-400">Pesanan Baru (PO)</strong>.
+                <p className="text-xs text-slate-600 dark:text-zinc-400">
+                Pesanan{' '}
+                <strong className="text-slate-900 dark:text-white">
+                    {refundModalOrder.po_number}
+                </strong>{' '}
+                tidak sesuai permintaan. Setelah refund diajukan, Anda akan langsung diarahkan untuk
+                membuat{' '}
+                <strong className="text-red-600 dark:text-red-400">Pesanan Baru (PO)</strong>.
                 </p>
 
                 <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
                     Alasan Ketidaksesuaian & Pengajuan Refund (Wajib)
                 </label>
                 <textarea
@@ -1082,7 +1125,7 @@ const timelineSteps = [
                     value={refundReason}
                     onChange={(e) => setRefundReason(e.target.value)}
                     placeholder="Contoh: Spesifikasi komponen berbeda dan jumlah barang kurang dari PO"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-orange-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-amber-500"
                 />
                 </div>
 
@@ -1090,14 +1133,14 @@ const timelineSteps = [
                 <button
                     type="button"
                     onClick={() => setRefundModalOrder(null)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-semibold cursor-pointer"
                 >
                     Batal
                 </button>
                 <button
                     type="submit"
                     disabled={busyOrderId === refundModalOrder.id}
-                    className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold cursor-pointer"
                 >
                     Ajukan Refund & Lanjut Pesanan Baru
                 </button>
@@ -1107,29 +1150,32 @@ const timelineSteps = [
         )}
 
         {rejectModalOrder && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
             <form
                 onSubmit={handleSupplierRejectSubmit}
-                className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4"
+                className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4"
             >
                 <div className="flex items-center justify-between">
-                <h3 className="font-bold text-white">Tolak Restock Order</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white">Tolak Restock Order</h3>
                 <button
                     type="button"
                     onClick={() => setRejectModalOrder(null)}
-                    className="text-slate-400 hover:text-white cursor-pointer"
+                    className="text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
                 >
                     <X className="w-5 h-5" />
                 </button>
                 </div>
 
-                <p className="text-xs text-slate-400">
-                Nomor PO: <strong className="text-white">{rejectModalOrder.po_number}</strong>.
-                Anda wajib mencantumkan alasan penolakan.
+                <p className="text-xs text-slate-600 dark:text-zinc-400">
+                Nomor PO:{' '}
+                <strong className="text-slate-900 dark:text-white">
+                    {rejectModalOrder.po_number}
+                </strong>
+                . Anda wajib mencantumkan alasan penolakan.
                 </p>
 
                 <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
                     Alasan Penolakan (Wajib)
                 </label>
                 <textarea
@@ -1138,7 +1184,7 @@ const timelineSteps = [
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
                     placeholder="Contoh: Stok komponen sedang kosong di pabrik hingga akhir bulan"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-red-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-red-500"
                 />
                 </div>
 
@@ -1146,14 +1192,14 @@ const timelineSteps = [
                 <button
                     type="button"
                     onClick={() => setRejectModalOrder(null)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-semibold cursor-pointer"
                 >
                     Batal
                 </button>
                 <button
                     type="submit"
                     disabled={busyOrderId === rejectModalOrder.id}
-                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer"
                 >
                     Konfirmasi Tolak PO
                 </button>
@@ -1163,32 +1209,34 @@ const timelineSteps = [
         )}
 
         {ratingModalOrder && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
             <form
                 onSubmit={handleRatingSubmit}
-                className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4"
+                className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4"
             >
                 <div className="flex items-center justify-between">
-                <h3 className="font-bold text-white">Rating & Feedback Supplier</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white">
+                    Rating & Feedback Supplier
+                </h3>
                 <button
                     type="button"
                     onClick={() => setRatingModalOrder(null)}
-                    className="text-slate-400 hover:text-white cursor-pointer"
+                    className="text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
                 >
                     <X className="w-5 h-5" />
                 </button>
                 </div>
 
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-zinc-400">
                 Penilaian untuk{' '}
-                <strong className="text-white">
+                <strong className="text-slate-900 dark:text-white">
                     {ratingModalOrder.supplier_company || ratingModalOrder.supplier_name}
                 </strong>{' '}
                 ({ratingModalOrder.po_number})
                 </p>
 
                 <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-2">
                     Skor Pengiriman & Kualitas Komponen (1 - 5)
                 </label>
                 <div className="flex items-center gap-2">
@@ -1199,8 +1247,8 @@ const timelineSteps = [
                         onClick={() => setSelectedRating(num)}
                         className={`p-2.5 rounded-xl border transition cursor-pointer ${
                         num <= selectedRating
-                            ? 'bg-amber-500/15 border-amber-500/40 text-amber-400'
-                            : 'bg-slate-950 border-slate-800 text-slate-600'
+                            ? 'bg-amber-50 dark:bg-amber-500/15 border-amber-400 text-amber-500'
+                            : 'bg-slate-50 dark:bg-zinc-950 border-slate-200 dark:border-zinc-800 text-slate-400 dark:text-zinc-600'
                         }`}
                     >
                         <Star
@@ -1212,7 +1260,7 @@ const timelineSteps = [
                 </div>
 
                 <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
                     Catatan Ulasan (Opsional)
                 </label>
                 <textarea
@@ -1220,7 +1268,7 @@ const timelineSteps = [
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
                     placeholder="Contoh: Pengiriman tepat waktu dan kemasan part aman"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-emerald-500"
                 />
                 </div>
 
@@ -1228,14 +1276,14 @@ const timelineSteps = [
                 <button
                     type="button"
                     onClick={() => setRatingModalOrder(null)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-semibold cursor-pointer"
                 >
                     Batal
                 </button>
                 <button
                     type="submit"
                     disabled={busyOrderId === ratingModalOrder.id}
-                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-bold cursor-pointer"
                 >
                     Simpan Rating
                 </button>
@@ -1245,4 +1293,4 @@ const timelineSteps = [
         )}
         </div>
     );
-}
+    }
