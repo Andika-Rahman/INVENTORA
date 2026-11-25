@@ -10,6 +10,7 @@ import {
     ArrowLeftRight,
     Truck,
     UserCheck,
+    Users,
 } from 'lucide-react';
 import ThemeToggle from '@/components/theme/ThemeToggle';
 
@@ -52,6 +53,12 @@ export default function Sidebar({ session }) {
         href: '/dashboard/suppliers',
         label: 'Verifikasi Supplier',
         icon: UserCheck,
+        roles: ['admin'],
+        },
+        {
+        href: '/dashboard/staff',
+        label: 'Manajemen Staff',
+        icon: Users,
         roles: ['admin'],
         },
     ];
