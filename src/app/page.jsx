@@ -24,24 +24,28 @@ export default async function HomePage() {
     const features = [
       {
         icon: Package,
+        accent: 'red',
         title: 'Tracking Stok & Lokasi Rak',
         description:
           'Pantau stok komponen PC & laptop real-time lengkap dengan kode SKU unik, lokasi rak fisik, dan peringatan otomatis status Low hingga Out of Stock.',
       },
       {
         icon: ArrowLeftRight,
+        accent: 'emerald',
         title: 'Transaksi Masuk & Keluar Tervalidasi',
         description:
           'Setiap pencatatan barang masuk dan keluar oleh Staff Gudang melewati validasi Warehouse Manager dengan pembaruan stok atomik yang akurat.',
       },
       {
         icon: Truck,
+        accent: 'emerald',
         title: 'Purchase Order & Portal Supplier',
         description:
           'Kelola pengajuan restock ke mitra supplier terverifikasi mulai dari status Pending, Confirmed, In Transit, Received, hingga penilaian performa.',
       },
       {
         icon: QrCode,
+        accent: 'red',
         title: 'Barcode Label & Export CSV',
         description:
           'Cetak label Barcode & QR untuk setiap rak komponen, lakukan Quick Scan SKU instan, dan unduh laporan inventori ke format spreadsheet CSV.',
@@ -51,21 +55,25 @@ export default async function HomePage() {
     const roles = [
       {
         role: 'Administrator',
+        accent: 'red',
         summary:
-          'Kontrol penuh master data, manajemen kategori, dan verifikasi pendaftaran mitra supplier baru.',
+          'Kontrol penuh master data, manajemen kategori, akun Staff Gudang, dan verifikasi pendaftaran mitra supplier baru.',
       },
       {
         role: 'Warehouse Manager',
+        accent: 'emerald',
         summary:
           'Validasi transaksi harian, pengawasan stok kritis, pembuatan Restock PO, dan rating supplier.',
       },
       {
         role: 'Staff Gudang',
+        accent: 'emerald',
         summary:
-          'Pencatatan cepat barang masuk dari PO, barang keluar ke customer, serta pembaruan status pengiriman.',
+          'Pencatatan cepat barang masuk dari PO, barang keluar ke customer, serta pemeriksaan fisik kedatangan barang.',
       },
       {
         role: 'Mitra Supplier',
+        accent: 'red',
         summary:
           'Portal khusus untuk mengkonfirmasi pesanan restock gudang dan memantau riwayat pengiriman.',
       },
@@ -85,6 +93,8 @@ export default async function HomePage() {
         <SplashScreen />
 
         <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-950/85 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800/80">
+          <div className="h-1 w-full bg-linear-to-r from-red-600 via-white to-emerald-600" />
+
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-sm shadow-red-600/25">
@@ -94,7 +104,7 @@ export default async function HomePage() {
                 <span className="font-bold text-slate-900 dark:text-white tracking-tight block leading-none">
                   INVENTORA
                 </span>
-                <span className="text-[11px] text-slate-500 dark:text-zinc-400">
+                <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
                   PC & Laptop Warehouse System
                 </span>
               </div>
@@ -104,7 +114,7 @@ export default async function HomePage() {
               <a href="#tentang" className="hover:text-red-600 dark:hover:text-red-400 transition">
                 Tentang Sistem
               </a>
-              <a href="#fitur" className="hover:text-red-600 dark:hover:text-red-400 transition">
+              <a href="#fitur" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition">
                 Fitur Utama
               </a>
               <a href="#peran" className="hover:text-red-600 dark:hover:text-red-400 transition">
@@ -118,7 +128,7 @@ export default async function HomePage() {
               {session ? (
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500 text-white text-xs font-semibold shadow-sm shadow-red-600/20 transition"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-sm shadow-red-600/20 transition"
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Buka Dashboard</span>
@@ -127,14 +137,14 @@ export default async function HomePage() {
                 <>
                   <Link
                     href="/login"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-800 text-xs font-semibold transition"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-800 text-xs font-semibold transition"
                   >
-                    <LogIn className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400" />
+                    <LogIn className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span>Masuk</span>
                   </Link>
                   <Link
                     href="/register"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500 text-white text-xs font-semibold shadow-sm shadow-red-600/25 transition"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-sm shadow-red-600/25 transition"
                   >
                     <UserPlus className="w-3.5 h-3.5" />
                     <span>Daftar Akun</span>
@@ -152,7 +162,7 @@ export default async function HomePage() {
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
               <div className="lg:col-span-6 space-y-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/25 dark:text-red-400 text-xs font-semibold">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/25 dark:text-emerald-400 text-xs font-semibold">
                   <ShieldCheck className="w-4 h-4" />
                   <span>Sistem Manajemen Gudang Komponen Komputer & Laptop</span>
                 </div>
@@ -175,7 +185,9 @@ export default async function HomePage() {
                     <p className="text-xs text-slate-500 dark:text-zinc-400">Akses berbasis RBAC</p>
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-slate-900 dark:text-white">Real-Time</p>
+                    <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
+                      Real-Time
+                    </p>
                     <p className="text-xs text-slate-500 dark:text-zinc-400">Mutasi stok atomik</p>
                   </div>
                   <div>
@@ -286,7 +298,7 @@ export default async function HomePage() {
                         <span className="font-semibold text-slate-900 dark:text-white">
                           Alur Restock Purchase Order
                         </span>
-                        <span className="font-mono text-[11px] text-red-600 dark:text-red-400 font-semibold">
+                        <span className="font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
                           4 Tahap Terpantau
                         </span>
                       </div>
@@ -301,7 +313,7 @@ export default async function HomePage() {
                         <div className="py-1.5 px-1 rounded-lg bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/40">
                           3. In Transit
                         </div>
-                        <div className="py-1.5 px-1 rounded-lg bg-white text-slate-400 border border-slate-200 dark:bg-zinc-900 dark:text-zinc-500 dark:border-zinc-800">
+                        <div className="py-1.5 px-1 rounded-lg bg-white text-slate-500 border border-slate-200 dark:bg-zinc-900 dark:text-zinc-400 dark:border-zinc-800">
                           4. Received
                         </div>
                       </div>
@@ -341,20 +353,35 @@ export default async function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 {features.map((feat) => {
                   const Icon = feat.icon;
+                  const isEmerald = feat.accent === 'emerald';
+
                   return (
                     <div
                       key={feat.title}
-                      className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 space-y-3 shadow-xs"
+                      className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-xs"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/25 dark:text-red-400 flex items-center justify-center">
-                        <Icon className="w-5 h-5" />
+                      <div
+                        className={`h-1 w-full ${
+                          isEmerald ? 'bg-emerald-600' : 'bg-red-600'
+                        }`}
+                      />
+                      <div className="p-5 space-y-3">
+                        <div
+                          className={`w-10 h-10 rounded-xl border flex items-center justify-center ${
+                            isEmerald
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/25 dark:text-emerald-400'
+                              : 'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/25 dark:text-red-400'
+                          }`}
+                        >
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+                          {feat.title}
+                        </h3>
+                        <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+                          {feat.description}
+                        </p>
                       </div>
-                      <h3 className="font-bold text-slate-900 dark:text-white text-sm">
-                        {feat.title}
-                      </h3>
-                      <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                        {feat.description}
-                      </p>
                     </div>
                   );
                 })}
@@ -375,22 +402,32 @@ export default async function HomePage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {roles.map((item, idx) => (
-                  <div
-                    key={item.role}
-                    className="bg-slate-50 dark:bg-zinc-900/70 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 space-y-2.5"
-                  >
-                    <span className="text-xs font-mono font-bold text-red-600 dark:text-red-400">
-                      0{idx + 1}
-                    </span>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-sm">
-                      {item.role}
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                      {item.summary}
-                    </p>
-                  </div>
-                ))}
+                {roles.map((item, idx) => {
+                  const isEmerald = item.accent === 'emerald';
+
+                  return (
+                    <div
+                      key={item.role}
+                      className="bg-slate-50 dark:bg-zinc-900/70 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 space-y-2.5"
+                    >
+                      <span
+                        className={`text-xs font-mono font-bold ${
+                          isEmerald
+                            ? 'text-emerald-700 dark:text-emerald-400'
+                            : 'text-red-600 dark:text-red-400'
+                        }`}
+                      >
+                        0{idx + 1}
+                      </span>
+                      <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+                        {item.role}
+                      </h3>
+                      <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+                        {item.summary}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </section>
